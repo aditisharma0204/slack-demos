@@ -1,0 +1,11 @@
+{
+  "personaId": "james",
+  "title": "James",
+  "description": "ER Lead receiving confidential cases from the Employee Relations queue",
+  "stepIds": ["step-11", "step-12"],
+  "overrides": {
+    "introInstructions": "You're viewing as James. Experience how an ER Lead receives confidential cases from Slackbot.",
+    "channels": ["#er-internal", "#hr-leads", "#compliance"],
+    "dms": ["Slackbot", "ER Team", "HR Director"]
+  }
+}

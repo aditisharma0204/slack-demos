@@ -1,0 +1,32 @@
+---
+description: Use design tokens and shared UI so Foundation Design System and Slackbot template changes apply everywhere
+alwaysApply: true
+---
+
+# Design System & Slackbot Templates — Single Source of Truth
+
+Changes to the **Foundation Design System** and **Slackbot templates** must apply project-wide without manual propagation.
+
+## Design tokens (single source of truth)
+
+- **All colors, spacing, and typography** are defined in `src/styles/slack.css` as CSS variables (`:root { --slack-* }`).
+- **Never hardcode** hex/rgb values (e.g. `#611f69`, `#1d1c1d`, `#616061`, `#e0e0e0`) in components. Use `var(--slack-*)` or the shared components below.
+- When adding or changing a design token, add/update it in `src/styles/slack.css` only. The Foundation Design System page should reflect these tokens (e.g. color swatches can reference the same variables).
+
+## Shared UI components
+
+- Use **shared buttons** from `@/components/ui/DesignSystemButtons` for primary and secondary actions: `PrimaryButton`, `PrimaryButtonLarge`, `SecondaryButton`. Do not inline button styles that duplicate these.
+- Use **CSS variables** for layout and surfaces: e.g. `style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)', color: 'var(--slack-text)' }}` for page background, borders, and text.
+
+## Where this applies
+
+- **Foundation Design System page** (`FoundationDesignSystemPage.tsx`): Uses shared button components and tokens; documents the same tokens defined in `slack.css`.
+- **Slackbot templates page** (`SlackbotTemplatesPage.tsx`) and all **Slackbot template components** (e.g. `CaseConstruct`, `TextWithButtonsMessage`, `PlainTextMessage`): Use shared buttons and `var(--slack-*)` for colors/borders.
+- **Any new or edited UI** (Index, Canvas, Builder, Chat, etc.): Use design tokens and shared components so one change in `slack.css` or in the shared components propagates everywhere.
+
+## Quick reference
+
+- Primary CTA button: `var(--slack-btn-default-bg)` / `PrimaryButton`
+- Accent/purple (avatars, tabs, focus): `var(--slack-avatar-bg)`
+- Text: `var(--slack-text)`, muted: `var(--slack-msg-muted)`
+- Borders: `var(--slack-border)`; inputs: `var(--slack-input-border)`

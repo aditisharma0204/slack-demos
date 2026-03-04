@@ -1,0 +1,54 @@
+[
+  {
+    "id": "plain_text",
+    "name": "Plain text",
+    "description": "Simple reply with text only, no buttons or cards",
+    "type": "plain_text",
+    "config": {
+      "placeholder": "Type your message...",
+      "timestampLabel": "Just now"
+    }
+  },
+  {
+    "id": "text_with_buttons",
+    "name": "Text with buttons",
+    "description": "Reply with text and one or more choice buttons",
+    "type": "text_with_buttons",
+    "config": {
+      "placeholder": "Type your message...",
+      "buttonLabel": "Choose an option",
+      "timestampLabel": "Just now"
+    }
+  },
+  {
+    "id": "thinking",
+    "name": "Thinking",
+    "description": "Typing indicator only (Thinking)",
+    "type": "thinking",
+    "config": {
+      "defaultLabel": "Thinking..."
+    }
+  },
+  {
+    "id": "thinking_with_status",
+    "name": "Thinking with status",
+    "description": "Typing indicator with configurable status (e.g. Looking into Slack history...)",
+    "type": "thinking_with_status",
+    "config": {
+      "defaultLabel": "Thinking...",
+      "statusPlaceholder": "e.g. Looking into Slack history..."
+    }
+  },
+  {
+    "id": "construct_case",
+    "name": "Case card",
+    "description": "Structured card with title and key-value fields",
+    "type": "construct_case",
+    "config": {
+      "titleLabel": "Case",
+      "fieldLabel": "Field",
+      "valueLabel": "Value",
+      "defaultTitle": "Case details"
+    }
+  }
+]

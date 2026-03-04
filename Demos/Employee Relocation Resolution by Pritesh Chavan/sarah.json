@@ -1,0 +1,11 @@
+{
+  "personaId": "sarah",
+  "title": "Sarah Chen",
+  "description": "Julia's manager; receives calendar invite for the relocation home survey",
+  "stepIds": ["step-20", "step-21"],
+  "overrides": {
+    "introInstructions": "You're viewing as Sarah. Experience how a manager receives a calendar invite for an employee's relocation survey.",
+    "channels": ["#general", "#team-updates"],
+    "dms": ["Slackbot", "Julia Anderson", "HR Support"]
+  }
+}

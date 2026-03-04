@@ -1,0 +1,28 @@
+---
+description: When the user asks to create a Slack demo or generate a demo from a story, read and follow the demo generation instructions file.
+alwaysApply: false
+---
+
+# Slack Demo Generation
+
+Apply this rule **only** when the user says something like:
+- "Create a Slack demo from this story"
+- "Generate a demo from this story"
+- Or similar (e.g. "turn this into a Slack demo", "make a demo from the following story")
+
+## What to do
+
+- **Automatic message formatting**: When generating demo.json, always apply the "Automatic message formatting" section from the instructions file (structured text with newlines and bullets, templateId and content.choices for buttons) so the user never has to edit JSON manually.
+
+1. **Find the instructions file**
+   - Default: `Demos/DEMO_GENERATION_INSTRUCTIONS.md`
+   - If the user specifies a different path (e.g. per-story instructions), use that file instead.
+
+2. **Read and follow it**
+   - Open the instructions file and follow it exactly.
+   - It defines where to put output (`Demos/<Title> by <Created By>/`), what to generate (demo.json, story.md, persona configs), and the **Slack persona** for Slackbot’s voice and behavior.
+
+3. **Use "Created by" from the user**
+   - The user may provide "Created by: &lt;name&gt;" with their story. Use that name in the folder path. If not provided, use a sensible default or ask.
+
+You can edit this rule or the instructions file to match your team’s workflow. For per-story instructions, the user can point you to a different markdown file (e.g. inside a specific demo folder).

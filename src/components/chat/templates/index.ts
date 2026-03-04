@@ -1,0 +1,15 @@
+/** Import all template components so they register with the registry. */
+import './PlainTextMessage'
+import './TextWithButtonsMessage'
+import './ThinkingIndicatorTemplate'
+import './ThinkingWithStatusTemplate'
+import './CaseConstruct'
+import './ApprovalConstruct'
+
+export { PlainTextMessage } from './PlainTextMessage'
+export { TextWithButtonsMessage } from './TextWithButtonsMessage'
+export { ThinkingIndicatorTemplate } from './ThinkingIndicatorTemplate'
+export { ThinkingWithStatusTemplate } from './ThinkingWithStatusTemplate'
+export { CaseConstruct } from './CaseConstruct'
+export { ApprovalConstruct } from './ApprovalConstruct'
+export type { TemplateRenderProps } from './types'

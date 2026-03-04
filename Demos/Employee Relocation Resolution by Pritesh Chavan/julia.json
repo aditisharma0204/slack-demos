@@ -1,0 +1,11 @@
+{
+  "personaId": "julia",
+  "title": "Julia Anderson",
+  "description": "Employee requesting relocation to New York; receives offer and visa instructions",
+  "stepIds": ["step-1", "step-2", "step-5", "step-6", "step-25", "step-26", "step-27", "step-35", "step-36", "step-37"],
+  "overrides": {
+    "introInstructions": "You're viewing as Julia. Experience the employee relocation request flow and receiving the offer.",
+    "channels": ["#general"],
+    "dms": ["Slackbot", "Sarah Chen"]
+  }
+}

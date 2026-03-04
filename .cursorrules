@@ -1,0 +1,23 @@
+# Slack Demos - Story-to-Demo Workflow
+
+## When the user provides a story in text/Markdown and asks for the demo
+
+1. **Parse the story** — Extract title, createdBy, personas, and steps from the user's narrative.
+
+2. **Create the demo folder** — `Demos/<Title> by <Created By>/`
+   - Use the exact format: `<Title> by <Created By>` (e.g., "Paternity Leave Request by John Doe")
+   - No demo1, demo2 — use the title + created by naming convention.
+
+3. **Create two files in that folder:**
+   - **story.md** — Refined, structured Markdown. Enhance the text, improve clarity, add overview and step descriptions. Use the format in `Demos/README.md`.
+   - **demo.json** — The StoryConfig format (id, title, createdBy, workspaceName, personas, steps). Use slug for id: `kebab-case-of-title-by-created-by` (e.g., `paternity-leave-request-by-john-doe`).
+
+4. **Step types** — Map narrative steps to: surface, user_message, app_message, user_action, modal_open, modal_submit, thread_reply, bot_typing. See `src/types/index.ts` for the schema.
+
+5. **Personas** — Each persona needs: id (slug), name, designation, role, type (user | app).
+
+The demo will automatically appear on the home page and at `/demo/<id>`.
+
+## UI: Link-style buttons
+- Buttons that look like links (e.g. "Show demo instructions", "Reset to default") must have **no background** in any state (default, hover, focus, active).
+- Use the `link-button` class from `src/styles/slack.css` (color, underline, no padding, no background). Do not add `backgroundColor`, `hover:bg-*`, or any background to link buttons.

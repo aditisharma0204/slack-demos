@@ -1,0 +1,133 @@
+/* Slack UI - Matches reference image and Slack guidelines */
+
+:root {
+  /* Sidebar, Top bar, Footer - Deep purple/eggplant (#3F0E40) */
+  --slack-sidebar-bg: #3F0E40;
+  --slack-sidebar-border: rgba(255, 255, 255, 0.08);
+  --slack-sidebar-text: #ffffff;
+  --slack-sidebar-muted: rgba(255, 255, 255, 0.75);
+  --slack-sidebar-hover: rgba(255, 255, 255, 0.1);
+  --slack-sidebar-selected-bg: rgba(255, 255, 255, 0.15);
+  --slack-sidebar-selected-text: #ffffff;
+  --slack-topbar-bg: #3F0E40;
+  --slack-search-bg: #5d3d5e;
+  --slack-footer-bg: #3F0E40;
+
+  /* Main content - Light grey/off-white (almost white) */
+  --slack-main-bg: #fafafa;
+  --slack-pane-bg: #ffffff;
+  --slack-border: #e0e0e0;
+
+  /* Text - Dark grey/black on light backgrounds */
+  --slack-text: #1d1c1d;
+  --slack-msg-author: #1d1c1d;
+  --slack-msg-text: #1d1c1d;
+  --slack-msg-muted: #616061;
+  --slack-msg-hover: #f5f5f5;
+  --slack-mention: #1264a3;
+
+  /* Buttons - Default (green) used project-wide; accent (purple) for primary CTAs */
+  --slack-btn-default-bg: rgba(0, 122, 90, 1);
+  --slack-btn-default-text: rgba(255, 255, 255, 1);
+  --slack-btn-bg: #ffffff;
+  --slack-btn-border: #d1d1d1;
+  --slack-btn-secondary-border: rgba(124, 122, 127, 1);
+  --slack-btn-text: #000000;
+  --slack-btn-active-bg: #ffffff;
+  --slack-btn-hover-bg: #f5f5f5;
+
+  /* Input / form controls - Used project-wide to match Foundation */
+  --slack-input-placeholder: #616061;
+  --slack-input-bg: #ffffff;
+  --slack-input-border: #e0e0e0;
+  --slack-input-padding-x: 8px;
+  --slack-input-padding-y: 8px;
+  --slack-input-margin: 0;
+
+  /* Avatars & accents */
+  --slack-avatar-bg: #611f69;
+  --slack-avatar-text: #ffffff;
+  --slack-workspace-yellow: #ecb22e;
+  --slack-tab-active: #611f69;
+  --slack-send-btn: #611f69;
+  --slack-send-btn-hover: #4a154b;
+
+  /* Font sizes */
+  --slack-font-xs: 11px;
+  --slack-font-sm: 13px;
+  --slack-font-base: 14px;
+  --slack-font-md: 15px;
+  --slack-font-lg: 16px;
+  --slack-font-xl: 18px;
+  --slack-font-2xl: 22px;
+}
+
+.slack-layout {
+  font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+/* All buttons in main Slack content area: default green (matches project) */
+.slack-layout .slack-main-content button {
+  color: var(--slack-btn-default-text);
+  background-color: var(--slack-btn-default-bg);
+  border: none;
+}
+
+/* Form controls - project-wide to match Foundation Design System */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+select {
+  margin: var(--slack-input-margin);
+  padding-left: var(--slack-input-padding-x);
+  padding-right: var(--slack-input-padding-x);
+  padding-top: var(--slack-input-padding-y);
+  padding-bottom: var(--slack-input-padding-y);
+  border-radius: 6px;
+  border: 1px solid var(--slack-input-border);
+  background-color: var(--slack-input-bg);
+  font-size: 14px;
+  outline: none;
+}
+input:focus,
+select:focus {
+  box-shadow: 0 0 0 2px var(--slack-avatar-bg);
+}
+
+/**
+ * Link button - looks like a text link, no background in any state.
+ * Use for: "Show more", "Reset to default", toggle labels, etc.
+ * Do not add background or hover background to link buttons.
+ */
+button.link-button,
+.link-button {
+  background: none !important;
+  background-color: transparent !important;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--slack-mention);
+  text-decoration: underline;
+  transition: opacity 0.15s ease;
+}
+button.link-button:hover,
+.link-button:hover {
+  background: none !important;
+  background-color: transparent !important;
+  opacity: 0.85;
+}
+button.link-button:focus,
+button.link-button:focus-visible,
+.link-button:focus,
+.link-button:focus-visible {
+  background: none !important;
+  background-color: transparent !important;
+  outline: 2px solid var(--slack-avatar-bg);
+  outline-offset: 2px;
+}
+button.link-button:active,
+.link-button:active {
+  background: none !important;
+  background-color: transparent !important;
+}

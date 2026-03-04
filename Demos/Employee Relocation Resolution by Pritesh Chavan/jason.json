@@ -1,0 +1,11 @@
+{
+  "personaId": "jason",
+  "title": "Jason",
+  "description": "HR Business Partner managing relocation case in #hr-relocation-leads",
+  "stepIds": ["step-7", "step-8", "step-9", "step-10", "step-11", "step-12"],
+  "overrides": {
+    "introInstructions": "You're viewing as Jason. Experience how an HR BP claims and manages a relocation case in #hr-relocation-leads.",
+    "channels": ["#hr-relocation-leads", "#general"],
+    "dms": ["Slackbot", "Julia Anderson", "Sarah Chen"]
+  }
+}
