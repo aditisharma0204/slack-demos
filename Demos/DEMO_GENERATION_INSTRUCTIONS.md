@@ -115,7 +115,7 @@ When you generate or edit **demo.json**, you must format Slackbot and app messag
 }
 ```
 
-Apply the same principles to **thread_reply** steps when the reply is long or has a list: use `\n` and `•` (and `*bold*` if needed). For thread replies that offer buttons, the app currently renders text only; you can still structure the text with newlines and bullets for readability.
+Apply the same principles to **thread_reply** steps when the reply is long or has a list: use `\n` and `•` (and `*bold*` if needed). **Thread replies that offer buttons** are supported the same way as `app_message`: set `content.templateId` (e.g. `"text_with_buttons"`) and either `content.choices` on the `thread_reply` step or rely on the immediately following `user_action` step’s `content.choices`; the app will render the buttons. Structure the text with newlines and bullets for readability.
 
 ---
 

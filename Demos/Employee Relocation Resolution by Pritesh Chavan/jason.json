@@ -2,7 +2,7 @@
   "personaId": "jason",
   "title": "Jason",
   "description": "HR Business Partner managing relocation case in #hr-relocation-leads",
-  "stepIds": ["step-7", "step-8", "step-9", "step-10", "step-11", "step-12"],
+  "stepIds": ["step-7", "step-8", "step-9", "step-10", "step-11", "step-12", "step-13", "step-14", "step-15", "step-16", "step-17", "step-18", "step-19", "step-22", "step-23", "step-24", "step-28", "step-29", "step-30", "step-31", "step-32", "step-33", "step-38", "step-39", "step-40", "step-41", "step-42", "step-43", "step-44"],
   "overrides": {
     "introInstructions": "You're viewing as Jason. Experience how an HR BP claims and manages a relocation case in #hr-relocation-leads.",
     "channels": ["#hr-relocation-leads", "#general"],

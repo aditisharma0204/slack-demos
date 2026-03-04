@@ -75,10 +75,16 @@ export function IndexPage() {
       {/* Hero */}
       <section className="px-6 lg:px-12 py-16 lg:py-24 text-center max-w-4xl mx-auto">
         <h1
-          className="font-black text-4xl lg:text-5xl xl:text-6xl leading-tight mb-6"
+          className="font-black text-4xl lg:text-5xl xl:text-6xl leading-tight mb-6 flex items-center justify-center gap-3"
           style={{ color: 'var(--slack-text)', fontSize: '60px' }}
         >
-          Slack Prototype Demos
+          <img
+            src="/assets/slack-logo.svg"
+            alt=""
+            className="flex-shrink-0"
+            style={{ width: '56px', height: '56px' }}
+          />
+          Slack Demos
         </h1>
         <p
           className="text-xl lg:text-2xl mb-10 max-w-2xl mx-auto"
@@ -86,7 +92,7 @@ export function IndexPage() {
         >
           Write your story in paragraphs. I&apos;ll create the Slack demo—chat bubbles, personas, and all.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap items-center">
+        <div className="flex flex-row gap-4 justify-center flex-nowrap items-center">
           <PrimaryLinkLarge to="/canvas">Create new story</PrimaryLinkLarge>
           <SecondaryLinkLarge to="/reference">Instructions</SecondaryLinkLarge>
           <div className="relative" ref={moreOptionsRef}>

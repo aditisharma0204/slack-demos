@@ -73,6 +73,13 @@
   border: none;
 }
 
+/* Persona bar step nav buttons: semi-transparent white (overrides default green) */
+.slack-layout .slack-main-content .demo-persona-bar button,
+.demo-persona-bar button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff;
+}
+
 /* Form controls - project-wide to match Foundation Design System */
 input[type="text"],
 input[type="email"],
@@ -92,6 +99,16 @@ select {
 input:focus,
 select:focus {
   box-shadow: 0 0 0 2px var(--slack-avatar-bg);
+}
+
+/* Demo persona bar: select uses dark bar styling (no border, translucent background) */
+.demo-persona-bar select {
+  border: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.demo-persona-bar select:focus {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
 /**

@@ -10,6 +10,8 @@ interface DemoPersonaBarProps {
   /** When provided, shows step navigation (Back/Next) */
   currentStep?: number
   totalSteps?: number
+  /** Step id from demo.json (e.g. "step-6") for display as demo step number */
+  demoStepId?: string
   onBack?: () => void
   onNext?: () => void
   overlayEnabled?: boolean
@@ -24,6 +26,7 @@ export function DemoPersonaBar({
   onPersonaChange,
   currentStep,
   totalSteps,
+  demoStepId,
   onBack,
   onNext,
   overlayEnabled = true,
@@ -31,6 +34,12 @@ export function DemoPersonaBar({
   showOverlayToggle = false,
 }: DemoPersonaBarProps) {
   if (personas.length === 0) return null
+
+  // Demo step number from id (e.g. "step-6" -> "6"; otherwise use id as-is)
+  const demoStepLabel =
+    demoStepId != null && demoStepId !== ''
+      ? (demoStepId.match(/^step-(\d+)$/)?.[1] ?? demoStepId)
+      : (currentStep != null ? String(currentStep) : '–')
 
   const showStepNav =
     currentStep != null && totalSteps != null && onBack && onNext
@@ -54,7 +63,7 @@ export function DemoPersonaBar({
           <select
             value={selectedPersonaId ?? ''}
             onChange={(e) => onPersonaChange(e.target.value || null)}
-            className="bg-white/10 text-white border border-white/20 rounded px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer"
+            className="bg-white/10 text-white border-0 rounded px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/40 cursor-pointer"
             aria-label="Select persona to view as"
           >
             {personas.map((p) => (
@@ -81,24 +90,24 @@ export function DemoPersonaBar({
         {showStepNav && (
           <>
             <span className="text-white/80 text-sm">
-              Step {currentStep} of {totalSteps}
+              Step {demoStepLabel} ({currentStep} of {totalSteps})
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onBack}
-                className="text-white text-sm font-medium hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/40 rounded px-2 py-1"
+                className="text-white text-sm font-medium hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/40 rounded px-2 py-1 bg-white/10"
                 aria-label="Go to previous step"
               >
-                ← Back
+                ←
               </button>
               <button
                 type="button"
                 onClick={onNext}
-                className="text-white text-sm font-medium hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/40 rounded px-2 py-1"
+                className="text-white text-sm font-medium hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/40 rounded px-2 py-1 bg-white/10"
                 aria-label="Go to next step"
               >
-                Next →
+                →
               </button>
             </div>
           </>

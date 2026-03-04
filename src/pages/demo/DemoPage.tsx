@@ -1,13 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { getStory, getPersonaConfig } from '@/stories'
-import { StoryEngine } from '@/engine/StoryEngine'
+import { StoryEngine, FULL_STORY_PERSONA_ID } from '@/engine/StoryEngine'
 import { DemoLandingPage } from './DemoLandingPage'
 
 export function DemoPage() {
   const { storyId, personaId } = useParams<{ storyId: string; personaId?: string }>()
   const navigate = useNavigate()
   const story = storyId ? getStory(storyId) : undefined
-  const personaConfig = storyId && personaId ? getPersonaConfig(storyId, personaId) : undefined
+  const isFullStoryMode = personaId === FULL_STORY_PERSONA_ID
+  const personaConfig =
+    storyId && personaId && !isFullStoryMode
+      ? getPersonaConfig(storyId, personaId)
+      : undefined
 
   if (!story) {
     return (
@@ -22,14 +26,16 @@ export function DemoPage() {
     return <DemoLandingPage />
   }
 
-  // PersonaId but no config = invalid; redirect to landing
-  if (!personaConfig) {
+  // PersonaId but no config and not full story = invalid; redirect to landing
+  if (!isFullStoryMode && !personaConfig) {
     navigate(`/demo/${storyId}`, { replace: true })
     return null
   }
 
   const onPersonaChange = (newPersonaId: string | null) => {
-    if (newPersonaId) {
+    if (newPersonaId === FULL_STORY_PERSONA_ID) {
+      navigate(`/demo/${storyId}/${FULL_STORY_PERSONA_ID}`)
+    } else if (newPersonaId) {
       navigate(`/demo/${storyId}/${newPersonaId}`)
     } else {
       navigate(`/demo/${storyId}`)
@@ -39,8 +45,9 @@ export function DemoPage() {
   return (
     <StoryEngine
       story={story}
-      personaConfig={personaConfig}
+      personaConfig={isFullStoryMode ? undefined : personaConfig}
       onPersonaChange={onPersonaChange}
+      fullStoryMode={isFullStoryMode}
     />
   )
 }

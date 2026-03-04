@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { DEFAULT_DEMO_INSTRUCTIONS } from '@/constants/demoInstructions'
 
 const STORAGE_KEYS = {
@@ -90,24 +90,29 @@ export function CanvasPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f8f8f8' }}>
       <header
-        className="flex-shrink-0 px-6 py-6 border-b"
-        style={{
-          backgroundColor: 'var(--slack-pane-bg)',
-          borderColor: 'var(--slack-border)',
-          width: '100%',
-        }}
+        className="flex-shrink-0 px-6 border-b flex flex-col"
+        style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
-        <div className="max-w-3xl mx-auto">
-          <h1 className="font-bold text-2xl lg:text-3xl mb-2" style={{ color: 'var(--slack-text)' }}>
+        <div className="py-4 flex items-center justify-between">
+          <Link
+            to="/"
+            className="font-semibold text-[15px] hover:underline focus:outline-none focus:underline"
+            style={{ color: 'var(--slack-text)' }}
+          >
+            ← Back
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1 px-6 py-8 max-w-3xl mx-auto w-full">
+        <div className="max-w-3xl mx-auto w-full pb-6">
+          <h1 className="font-black text-[60px] mb-2" style={{ color: 'var(--slack-text)' }}>
             Story Canvas
           </h1>
           <p className="text-base" style={{ color: 'var(--slack-msg-muted)' }}>
             Write your story in paragraphs. I&apos;ll create the Slack demo—chat bubbles, personas, and all.
           </p>
         </div>
-      </header>
-
-      <main className="flex-1 px-6 py-8 max-w-3xl mx-auto w-full">
         {state?.demoTitle && (
           <div
             className="mb-4 p-3 rounded-lg text-sm"

@@ -7,15 +7,20 @@ import { DemoPersonaBar } from '@/components/demo/DemoPersonaBar'
 import { DatePickerModal } from '@/components/demo/DatePickerModal'
 import { ChatView } from '@/components/chat/ChatView'
 
+/** Reserved id for "Full story (step-by-step)" showcase mode in the View as dropdown */
+export const FULL_STORY_PERSONA_ID = 'full'
+
 interface StoryEngineProps {
   story: StoryConfig
   /** When provided, filters steps by persona and applies overrides (persona-specific prototype) */
   personaConfig?: PersonaConfig
   /** Called when user switches persona in the bar (navigates to new persona's prototype) */
   onPersonaChange?: (personaId: string | null) => void
+  /** When true, all steps from demo.json are shown in story order (showcase mode) */
+  fullStoryMode?: boolean
 }
 
-export function StoryEngine({ story, personaConfig, onPersonaChange }: StoryEngineProps) {
+export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMode = false }: StoryEngineProps) {
   const [searchParams] = useSearchParams()
   const isEditMode = searchParams.get('edit') === 'true'
 
@@ -74,33 +79,41 @@ export function StoryEngine({ story, personaConfig, onPersonaChange }: StoryEngi
   }, [goNext, goBack])
 
   const userPersonas = story.personas.filter((p) => p.type === 'user')
-  const viewAsPersonaId = personaConfig?.personaId ?? null
+  const fullStoryOption = { id: FULL_STORY_PERSONA_ID, name: 'Full story (step-by-step)', designation: '', role: '', type: 'user' as const }
+  const barPersonas = [fullStoryOption, ...userPersonas]
+  const viewAsPersonaId = fullStoryMode ? FULL_STORY_PERSONA_ID : (personaConfig?.personaId ?? null)
 
   const stepIndex = currentStepIndex - 1 // 0-based index into steps
 
-  // Auto-advance: bot_typing 1.5s; app_message 1.5s; surface 1.5s; modal_submit 600ms. Do NOT auto-advance from app_message when next step is user_action that opens the date modal—user must click "Choose dates".
+  // Auto-advance: Slackbot reply steps (app_message, thread_reply) and related steps advance after 1s. Do NOT auto-advance when next step is user_action with choices (user must click) or date modal.
   const currentStep = steps[stepIndex]
   const nextStep = steps[stepIndex + 1]
   const stepAfterNext = steps[stepIndex + 2]
   const nextOpensDateModal = nextStep?.type === 'user_action' && stepAfterNext?.type === 'modal_open' && (stepAfterNext as any).content?.view === 'date-picker'
+  const nextIsUserActionWithChoices = nextStep?.type === 'user_action' && (nextStep as any).content?.choices?.length
+  const nextIsSlackbotReply = nextStep?.type === 'app_message' || nextStep?.type === 'thread_reply'
+  const nextIsPersonaChange = nextStep?.type === 'surface'
   const isUserMessageStep = currentStep?.type === 'user_message'
   const isChoiceStep = currentStep?.type === 'user_action' && (currentStep as any).content?.choices?.length
   const isUserActionOpeningModal = currentStep?.type === 'user_action' && nextStep?.type === 'modal_open' && (nextStep as any).content?.view === 'date-picker'
   const isModalOpenStep = isUserActionOpeningModal || (currentStep?.type === 'modal_open' && (currentStep as any).content?.view === 'date-picker')
   const autoAdvanceDelayMs =
-    currentStep?.type === 'bot_typing' ? 1500 :
-    currentStep?.type === 'app_message' && !nextOpensDateModal ? 1500 :
-    currentStep?.type === 'surface' ? 1500 :
+    nextIsPersonaChange ? null :
+    currentStep?.type === 'bot_typing' ? 1000 :
+    currentStep?.type === 'user_action' && nextIsSlackbotReply && !nextOpensDateModal ? 1000 :
+    currentStep?.type === 'app_message' && !nextOpensDateModal && !nextIsUserActionWithChoices ? 1000 :
+    currentStep?.type === 'thread_reply' && !nextIsUserActionWithChoices ? 1000 :
+    currentStep?.type === 'surface' ? 1000 :
     currentStep?.type === 'modal_submit' ? 600 :
     null
 
   useEffect(() => {
     if (isEditMode || isUserMessageStep || isModalOpenStep || autoAdvanceDelayMs == null) return
-    // Block auto-advance on choice step only when next step is not modal_open (so we can advance to show the modal)
-    if (isChoiceStep && nextStep?.type !== 'modal_open') return
+    // Block auto-advance on choice step only when next step is not modal_open and not a Slackbot reply (so we can advance to show modal, or we auto-advance to show reply)
+    if (isChoiceStep && nextStep?.type !== 'modal_open' && !nextIsSlackbotReply) return
     const t = setTimeout(goNext, autoAdvanceDelayMs)
     return () => clearTimeout(t)
-  }, [stepIndex, isEditMode, isUserMessageStep, isChoiceStep, isModalOpenStep, nextStep?.type, autoAdvanceDelayMs, goNext])
+  }, [stepIndex, isEditMode, isUserMessageStep, isChoiceStep, isModalOpenStep, nextStep?.type, nextIsSlackbotReply, autoAdvanceDelayMs, goNext])
 
   const viewport = getViewportForStep(steps, stepIndex)
   const activeView = getActiveViewForStep(steps, stepIndex)
@@ -116,7 +129,8 @@ export function StoryEngine({ story, personaConfig, onPersonaChange }: StoryEngi
     : activeView === 'channel' ? channelState
     : threadState
   const hasChoices = activeState.chatMessages.length > 0 && !!activeState.chatMessages[activeState.chatMessages.length - 1].choices
-  const showOverlay = !isEditMode && !isUserMessageStep && !hasChoices && !isModalOpenStep
+  // Hide overlay when step will auto-advance so user sees the reply then advance without clicking
+  const showOverlay = !isEditMode && !isUserMessageStep && !hasChoices && !isModalOpenStep && autoAdvanceDelayMs == null
 
   // Default dates for date-picker modal (from modal_submit step; when opened from user_action, that step is 2 ahead)
   const modalSubmitStep = isUserActionOpeningModal ? steps[stepIndex + 2] : steps[stepIndex + 1]
@@ -132,6 +146,7 @@ export function StoryEngine({ story, personaConfig, onPersonaChange }: StoryEngi
     return (
       <ChatView
         key={view}
+        viewType={view}
         title={title}
         messages={state.chatMessages}
         pendingUserMessage={isActive ? state.pendingUserMessage : undefined}
@@ -196,19 +211,20 @@ export function StoryEngine({ story, personaConfig, onPersonaChange }: StoryEngi
             >
               {story.title}
             </Link>
-            {personaConfig && (
+            {(personaConfig || fullStoryMode) && (
               <>
                 <span className="text-white/60 mx-1.5">/</span>
-                <span className="text-white">{personaConfig.title}</span>
+                <span className="text-white">{fullStoryMode ? 'Full story (step-by-step)' : personaConfig!.title}</span>
               </>
             )}
           </>
         }
-        personas={userPersonas}
+        personas={barPersonas}
         selectedPersonaId={viewAsPersonaId}
         onPersonaChange={onPersonaChange ?? (() => {})}
         currentStep={currentStepIndex}
         totalSteps={totalSteps}
+        demoStepId={currentStep?.id}
         onBack={goBack}
         onNext={goNext}
         overlayEnabled={overlayEnabled}
@@ -230,6 +246,8 @@ export interface ChatMessagePayload {
   templateContent?: Record<string, unknown>
   /** Persona names for mention formatting (e.g. "Alex Kim" -> @Alex Kim) */
   personaNames?: string[]
+  /** When true, render as "New" tagged divider (switch-back strip); not a real message */
+  isNewDivider?: boolean
 }
 
 export type ChatViewType = 'slackbot' | 'channel' | 'thread'
@@ -254,8 +272,10 @@ function computeChatStateForView(
   const slackbotName = appPersona?.name ?? 'Slackbot'
 
   let segment: 'dm' | 'channel' = 'dm'
-  let threadParentMessage: ChatMessagePayload | null = null
-  let threadReplies: ChatMessagePayload[] = []
+  /** Last app_message in channel segment; used to attach choices for user_action in thread view */
+  let lastChannelAppMessage: ChatMessagePayload | null = null
+  /** Track if we've entered each segment before; used to show "New" divider only on switch-back */
+  const segmentEnteredBefore: { dm: boolean; channel: boolean } = { dm: false, channel: false }
 
   for (let i = 0; i <= upToIndex; i++) {
     const step = steps[i]
@@ -263,7 +283,19 @@ function computeChatStateForView(
 
     if (step.type === 'surface') {
       const ctx = (step as any).context
-      segment = ctx?.surface === 'channel' ? 'channel' : 'dm'
+      const newSegment: 'dm' | 'channel' = ctx?.surface === 'channel' ? 'channel' : 'dm'
+      const isSwitchBack = segmentEnteredBefore[newSegment]
+      const newDividerPayload: ChatMessagePayload = { id: `new-divider-${step.id}`, author: '', isNewDivider: true }
+      if (isSwitchBack) {
+        if (view === 'slackbot' && newSegment === 'dm') {
+          chatMessages.push(newDividerPayload)
+        }
+        if ((view === 'channel' || view === 'thread') && newSegment === 'channel') {
+          chatMessages.push(newDividerPayload)
+        }
+      }
+      segmentEnteredBefore[newSegment] = true
+      segment = newSegment
       continue
     }
 
@@ -286,24 +318,17 @@ function computeChatStateForView(
     }
 
     if (step.type === 'app_message') {
-      if (view === 'thread') {
-        if (!threadParentMessage) {
-          threadParentMessage = buildAppMessagePayload(step as any, steps, i, personas, lastSelectedChoice)
-        }
-        continue
-      }
       const msg = buildAppMessagePayload(step as any, steps, i, personas, lastSelectedChoice)
+      lastChannelAppMessage = msg
+      // Keep full channel history in both channel and thread views so earlier messages stay visible
       chatMessages.push(msg)
       continue
     }
 
     if (step.type === 'thread_reply') {
-      if (view === 'channel') {
-        const msg = buildThreadReplyPayload(step as any, personas)
+      const msg = buildThreadReplyPayload(step as any, steps, i, personas, lastSelectedChoice)
+      if (view === 'channel' || view === 'thread') {
         chatMessages.push(msg)
-      } else if (view === 'thread') {
-        const msg = buildThreadReplyPayload(step as any, personas)
-        threadReplies.push(msg)
       }
       continue
     }
@@ -380,19 +405,12 @@ function computeChatStateForView(
             const last = chatMessages[chatMessages.length - 1]
             if (last.isApp && !last.choices) last.choices = choices
           }
-          if (view === 'thread' && choices?.length && threadReplies.length > 0) {
-            const last = threadReplies[threadReplies.length - 1]
-            if (last.isApp && !last.choices) last.choices = choices
+          if (view === 'thread' && choices?.length && lastChannelAppMessage && !lastChannelAppMessage.choices) {
+            lastChannelAppMessage.choices = choices
           }
         }
       }
     }
-  }
-
-  if (view === 'thread' && (threadParentMessage || threadReplies.length > 0)) {
-    chatMessages.length = 0
-    if (threadParentMessage) chatMessages.push(threadParentMessage)
-    chatMessages.push(...threadReplies)
   }
 
   return { chatMessages, pendingUserMessage, showThinking, thinkingStatusText }
@@ -409,7 +427,10 @@ function buildAppMessagePayload(
   const persona = personas.find((p) => p.id === content?.personaId) ?? personas.find((p) => p.type === 'app')
   const nextStep = steps[i + 1]
   const prevStep = steps[i - 1]
-  const choices = content?.choices ?? (nextStep?.type === 'user_action' ? (nextStep as any).content?.choices : undefined)
+  const choices =
+    content?.choices ??
+    (nextStep?.type === 'user_action' ? (nextStep as any).content?.choices : undefined) ??
+    (prevStep?.type === 'user_action' && (prevStep as any).content?.choices?.length ? (prevStep as any).content.choices : undefined)
   const followsChoiceStep = prevStep?.type === 'user_action' && (prevStep as any).content?.choices?.length
   const rawText = content?.text ?? ''
   const displayText = followsChoiceStep && rawText.includes('{{selectedChoice}}')
@@ -438,18 +459,43 @@ function buildAppMessagePayload(
   }
 }
 
-function buildThreadReplyPayload(step: { id: string; content: any }, personas: StoryConfig['personas']): ChatMessagePayload {
+function buildThreadReplyPayload(
+  step: { id: string; content: any },
+  steps: StoryStep[],
+  i: number,
+  personas: StoryConfig['personas'],
+  lastSelectedChoice: string | null
+): ChatMessagePayload {
   const content = step.content
+  const nextStep = steps[i + 1]
+  const prevStep = steps[i - 1]
   const persona = content?.actor === 'app'
     ? personas.find((p) => p.type === 'app') ?? personas.find((p) => p.id === content?.personaId)
     : personas.find((p) => p.id === content?.personaId)
-  const text = content?.text ?? ''
+  const rawText = content?.text ?? ''
+  const followsChoiceStep = prevStep?.type === 'user_action' && (prevStep as any).content?.choices?.length
+  const displayText =
+    followsChoiceStep && rawText.includes('{{selectedChoice}}')
+      ? rawText.replace(/\{\{selectedChoice\}\}/g, lastSelectedChoice ?? 'your selection')
+      : rawText
+  const choices =
+    content?.choices ?? (nextStep?.type === 'user_action' ? (nextStep as any).content?.choices : undefined)
+  const hasChoices = Array.isArray(choices) && choices.length > 0
+  const templateId = content?.templateId ?? (hasChoices ? 'text_with_buttons' : undefined)
+  const templateContent: Record<string, unknown> = {
+    text: displayText,
+    choices: hasChoices ? choices : undefined,
+    personaNames: personas.map((p) => p.name),
+  }
   return {
     id: step.id,
     author: persona?.name ?? 'Slackbot',
-    text,
+    text: displayText,
     timestamp: 'Just now',
     isApp: content?.actor === 'app',
+    choices: hasChoices ? choices : undefined,
+    templateId: templateId ?? undefined,
+    templateContent: templateId ? templateContent : undefined,
     personaNames: personas.map((p) => p.name),
   }
 }

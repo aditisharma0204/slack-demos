@@ -139,7 +139,7 @@
     },
     {
       "id": "step-12",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
@@ -160,22 +160,12 @@
     },
     {
       "id": "step-14",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "Move date updated to October 1st, 2026. I've recalculated the budget and notified Julia of the timing. Proceeding to vendor coordination.",
-        "choices": ["Notify Moving Co"]
-      }
-    },
-    {
-      "id": "step-15",
-      "type": "user_action",
-      "content": {
-        "action": "notify_moving_co",
-        "trigger": "button",
-        "personaId": "jason",
         "choices": ["Notify Moving Co"]
       }
     },
@@ -186,7 +176,7 @@
     },
     {
       "id": "step-17",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
@@ -207,11 +197,13 @@
     },
     {
       "id": "step-19",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
-        "text": "Done! Calendar invites sent to Julia and Sarah. Global Movers will email Julia the Zoom link within 24 hours. Checklist: step 5 completed, step 6 [ Generate Housing Quote ]."
+        "templateId": "text_with_buttons",
+        "text": "Done! Calendar invites sent to Julia and Sarah. Global Movers will email Julia the Zoom link within 24 hours. \n\nChecklist: step 5 completed, step 6.",
+        "choices": ["Generate Housing Quote"]
       }
     },
     {
@@ -235,23 +227,13 @@
     },
     {
       "id": "step-23",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "I've opened Immigration Case #VISA-NY-882 with our external law firm (Fragomen). I've automatically uploaded Julia's passport copy and employment records from Workday. Next action: Julia must complete Form DS-160. Should I send her the link with instructions?",
         "choices": ["Send instructions to Julia", "Wait for lawyer review"]
-      }
-    },
-    {
-      "id": "step-24",
-      "type": "user_action",
-      "content": {
-        "action": "send_instructions_to_julia",
-        "trigger": "button",
-        "personaId": "jason",
-        "choices": ["Send instructions to Julia"]
       }
     },
     {
@@ -285,22 +267,12 @@
     },
     {
       "id": "step-29",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Julia has acknowledged the visa instructions. Moving forward with Steps 6–8... Steps 6–8 completed (temporary housing, COLA, lump sum). Jason, I've drafted Julia's full relocation package. Ready for your review and approval.",
-        "choices": ["Review Offer Package"]
-      }
-    },
-    {
-      "id": "step-30",
-      "type": "user_action",
-      "content": {
-        "action": "review_offer_package",
-        "trigger": "button",
-        "personaId": "jason",
+        "text": "Julia has acknowledged the visa instructions. Moving forward with Steps 6–8...\n\n*Progress update*\n• Steps 6–8 — completed (temporary housing, COLA, lump sum)\n\nJason, I've drafted Julia's full relocation package. Ready for your review and approval.\n\nChoose an action below to continue.",
         "choices": ["Review Offer Package"]
       }
     },
@@ -316,21 +288,18 @@
     },
     {
       "id": "step-33",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
+        "templateId": "plain_text",
         "text": "Offer approved! Sending personalized offer letter to Julia now..."
       }
     },
     {
       "id": "step-34",
       "type": "surface",
-      "content": {
-        "actor": "app",
-        "personaId": "slackbot",
-        "text": "Offer approved! Sending personalized offer letter to Julia now..."
-      }
+      "context": { "surface": "dm", "with": "Slackbot" }
     },
     {
       "id": "step-35",
@@ -368,16 +337,17 @@
     },
     {
       "id": "step-39",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
+        "templateId": "plain_text",
         "text": "Julia has accepted her offer! Case #9912 moving to Logistics & Departure Coordination phase."
       }
     },
     {
       "id": "step-40",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
@@ -398,20 +368,23 @@
     },
     {
       "id": "step-42",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
+        "templateId": "plain_text",
         "text": "Done! I've updated the article and notified the #hr-immigration-team channel of the change. This will help future cases set more accurate expectations."
       }
     },
     {
       "id": "step-43",
-      "type": "thread_reply",
+      "type": "app_message",
       "content": {
         "actor": "app",
         "personaId": "slackbot",
-        "text": "Relocation Trend Alert: London → New York requests up 15% this month vs January. Driver: NYC product team expansion. Recommendation: consider a 'Fast Track LHR-JFK' template. [ Create Template ] [ View Full Report ] [ Dismiss ]"
+        "templateId": "text_with_buttons",
+        "text": "*Relocation Trend Alert*\n\nLondon → New York requests up 15% this month vs January. Driver: NYC product team expansion.\n\nRecommendation: consider a \"Fast Track LHR-JFK\" template.\n\nChoose an action below to continue.",
+        "choices": ["Create Template", "View Full Report", "Dismiss"]
       }
     },
     {

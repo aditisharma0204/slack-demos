@@ -82,9 +82,37 @@ export function DemoLandingPage() {
         {/* Personas: 4 of 12 columns */}
         <section className="col-span-12 lg:col-span-4 flex flex-col min-h-0 min-w-0 overflow-y-auto">
           <p className="text-[14px] mb-4" style={{ color: 'var(--slack-msg-muted)' }}>
-            Choose a persona to experience this demo from their perspective:
+            Run the full story step-by-step, or choose a persona to see only their part:
           </p>
           <div className="flex flex-col gap-4">
+            <Link
+              to={`/demo/${storyId}/full`}
+              className="block p-6 rounded-lg border transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              style={{
+                backgroundColor: 'var(--slack-pane-bg)',
+                borderColor: 'var(--slack-border)',
+              }}
+            >
+              <div className="flex items-start gap-4">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-lg"
+                  style={{ backgroundColor: 'var(--slack-avatar-bg)' }}
+                >
+                  📖
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-bold text-[16px]" style={{ color: 'var(--slack-text)' }}>
+                    Full story (step-by-step)
+                  </h2>
+                  <p className="text-[13px] mt-0.5" style={{ color: 'var(--slack-msg-muted)' }}>
+                    Showcase
+                  </p>
+                  <p className="text-[13px] mt-2" style={{ color: 'var(--slack-msg-text)' }}>
+                    Walk through every step in story order as in demo.json. Ideal for presenting the full narrative.
+                  </p>
+                </div>
+              </div>
+            </Link>
             {userPersonas.map((persona) => {
               const config = configsByPersona.get(persona.id)
               return (
