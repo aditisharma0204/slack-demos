@@ -5,6 +5,9 @@ import { formatMessageWithMentions } from '@/components/chat/formatMessageWithMe
 import { ChatHeader as SharedChatHeader } from '@/components/chat/ChatHeader'
 import type { HeaderViewType } from '@/components/chat/ChatHeader'
 
+/** Typing animation: milliseconds per character. Same for all messages so short and long feel equal. Increase to slow down. */
+const TYPING_MS_PER_CHAR = 50
+
 export type Message = ChatMessagePayload
 
 interface ChatViewProps {
@@ -47,7 +50,7 @@ export function ChatView({
     setTypedLength(0)
     const chars = fullText.length
     if (chars === 0) return
-    const delay = Math.min(30, 2000 / chars)
+    const delay = TYPING_MS_PER_CHAR
     let i = 0
     const t = setInterval(() => {
       i++
@@ -89,7 +92,7 @@ export function ChatView({
       >
         {/* Spacer: takes remaining space so messages sit at bottom when few; shrinks when content overflows */}
         <div style={{ flex: '1 1 0%', minHeight: 0 }} aria-hidden />
-        <div className="mx-auto space-y-2 w-full" style={{ width: 672, maxWidth: '100%' }}>
+        <div className="mx-auto space-y-4 w-full" style={{ width: 672, maxWidth: '100%' }}>
           {messages.map((msg) =>
             msg.isNewDivider ? (
               <NewTaggedDivider key={msg.id} />
@@ -105,7 +108,7 @@ export function ChatView({
                 className="w-9 h-9 rounded-lg flex-shrink-0 object-cover"
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 mb-1">
+                <div className="flex items-baseline gap-2">
                   <span className="font-extrabold text-[15px]" style={{ color: 'var(--slack-text)' }}>
                     Slackbot
                   </span>
@@ -149,8 +152,8 @@ export function ChatView({
                   </div>
                 )}
               </div>
-              {/* Action bar */}
-              <div className="flex items-center justify-between pt-1 pb-0.5">
+              {/* Action bar: fixed height so composer doesn't shift when send button appears */}
+              <div className="flex items-center justify-between pt-1 pb-0.5 h-[40px] flex-shrink-0">
                 <div className="flex items-center gap-1 p-0 h-fit">
                   <ComposerIconButton aria-label="Add attachment">
                     <PlusIcon />
@@ -401,7 +404,7 @@ function ChatMessage({ message, onChoiceClick }: { message: Message; onChoiceCli
         <img
           src="/assets/slackbot-icon.png"
           alt={message.author}
-          className="w-9 h-9 rounded-lg flex-shrink-0 object-cover"
+          className="w-9 h-9 rounded-lg flex-shrink-0 object-cover pt-0 pb-0"
         />
       ) : (
         <div
@@ -412,7 +415,7 @@ function ChatMessage({ message, onChoiceClick }: { message: Message; onChoiceCli
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-1">
+        <div className="flex items-center justify-start gap-2 h-[18px] m-0">
           <span className="font-extrabold text-[15px]" style={{ color: 'var(--slack-text)' }}>
             {message.author}
           </span>

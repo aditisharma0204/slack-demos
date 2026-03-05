@@ -427,10 +427,11 @@ function buildAppMessagePayload(
   const persona = personas.find((p) => p.id === content?.personaId) ?? personas.find((p) => p.type === 'app')
   const nextStep = steps[i + 1]
   const prevStep = steps[i - 1]
+  // Only show choices on this message if: (1) explicit on content, or (2) next step is user_action (buttons for that action).
+  // Never inherit from prev step—that would re-show buttons on the reply after the user already clicked.
   const choices =
     content?.choices ??
-    (nextStep?.type === 'user_action' ? (nextStep as any).content?.choices : undefined) ??
-    (prevStep?.type === 'user_action' && (prevStep as any).content?.choices?.length ? (prevStep as any).content.choices : undefined)
+    (nextStep?.type === 'user_action' ? (nextStep as any).content?.choices : undefined)
   const followsChoiceStep = prevStep?.type === 'user_action' && (prevStep as any).content?.choices?.length
   const rawText = content?.text ?? ''
   const displayText = followsChoiceStep && rawText.includes('{{selectedChoice}}')
