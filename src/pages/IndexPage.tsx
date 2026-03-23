@@ -11,6 +11,7 @@ import { getStories } from '@/stories'
 import moreIcon from '@/assets/icons/more.svg'
 import moreActionsCardIcon from '@/assets/icons/More actions.svg'
 import forwardMessageIcon from '@/assets/icons/Forword message.svg'
+import { getShareLinkOrigin, sharedDemoUrlSuffix } from '@/utils/sharedDemoLink'
 
 export function IndexPage() {
   const stories = getStories()
@@ -42,7 +43,7 @@ export function IndexPage() {
   async function handleShareDemo(e: React.MouseEvent, id: string) {
     e.preventDefault()
     e.stopPropagation()
-    const url = `${window.location.origin}/demo/${encodeURIComponent(id)}`
+    const url = `${getShareLinkOrigin()}/demo/${encodeURIComponent(id)}${sharedDemoUrlSuffix()}`
     try {
       await navigator.clipboard.writeText(url)
       showShareCopiedToast()

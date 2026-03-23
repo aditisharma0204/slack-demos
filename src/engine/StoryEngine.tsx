@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useLocation } from 'react-router-dom'
+import { useSharedDemoMode } from '@/hooks/useSharedDemoMode'
 import type { OAuthModalUsageItem, StoryConfig, StoryStep, PersonaConfig, ViewportView } from '@/types'
 import { resolvePersonaAvatarUrl } from '@/utils/personaAvatar'
 import { getViewportForStep, getActiveViewForStep, getSurfaceAtStep } from '@/engine/viewport'
@@ -37,6 +38,8 @@ interface StoryEngineProps {
 
 export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMode = false }: StoryEngineProps) {
   const [searchParams] = useSearchParams()
+  const { search } = useLocation()
+  const isSharedDemo = useSharedDemoMode()
   const isEditMode = searchParams.get('edit') === 'true'
 
   // Filter steps by persona when in persona-specific mode
@@ -267,16 +270,20 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
       <DemoPersonaBar
         breadcrumb={
           <>
+            {!isSharedDemo && (
+              <>
+                <Link
+                  to="/"
+                  className="text-white/90 hover:text-white focus:outline-none focus:underline"
+                  style={{ color: 'rgba(204, 204, 204, 1)' }}
+                >
+                  Demos
+                </Link>
+                <span className="text-white/60 mx-1.5">/</span>
+              </>
+            )}
             <Link
-              to="/"
-              className="text-white/90 hover:text-white focus:outline-none focus:underline"
-              style={{ color: 'rgba(204, 204, 204, 1)' }}
-            >
-              Demos
-            </Link>
-            <span className="text-white/60 mx-1.5">/</span>
-            <Link
-              to={`/demo/${story.id}`}
+              to={{ pathname: `/demo/${story.id}`, search }}
               className="text-white/90 hover:text-white focus:outline-none focus:underline"
               style={{ color: 'rgba(204, 204, 204, 1)' }}
             >

@@ -297,7 +297,7 @@ export function ReferencePage() {
           </p>
           <ul className="list-disc list-inside space-y-2 text-base mb-3" style={mutedStyle}>
             <li>
-              On the <strong style={textStyle}>home page</strong>, use <strong style={textStyle}>Share demo</strong> on a card to copy <code className="px-1.5 py-0.5 rounded text-sm" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>https://&lt;your-deployed-site&gt;/demo/&lt;demo-id&gt;</code>. That is the link to share.
+              On the <strong style={textStyle}>home page</strong>, use <strong style={textStyle}>Share demo</strong> on a card to copy a link that includes <code className="px-1.5 py-0.5 rounded text-sm" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>?shared=1</code>. That hides &quot;Back&quot; to your demo list and the <strong style={textStyle}>Demos</strong> breadcrumb so recipients only navigate inside the demo you shared. (Opening <code className="px-1.5 py-0.5 rounded text-sm" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>/demo/&lt;id&gt;</code> without that flag still shows full navigation—for your own use.)
             </li>
             <li>
               A link that starts with <code className="px-1.5 py-0.5 rounded text-sm" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>http://localhost</code> only works on your machine—send the deployed URL instead.

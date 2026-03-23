@@ -1,4 +1,5 @@
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useSharedDemoMode } from '@/hooks/useSharedDemoMode'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { getStory, getPersonaConfigs, getStoryMarkdown } from '@/stories'
@@ -7,6 +8,8 @@ import type { Persona } from '@/types'
 export function DemoLandingPage() {
   const { storyId } = useParams<{ storyId: string }>()
   const navigate = useNavigate()
+  const { search } = useLocation()
+  const isShared = useSharedDemoMode()
   const story = storyId ? getStory(storyId) : undefined
   const personaConfigs = storyId ? getPersonaConfigs(storyId) : []
   const storyMarkdown = storyId ? getStoryMarkdown(storyId) : undefined
@@ -38,24 +41,32 @@ export function DemoLandingPage() {
         className="flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
         style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
-        <Link
-          to="/"
-          className="font-semibold text-[15px] hover:underline focus:outline-none focus:underline"
-          style={{ color: 'var(--slack-text)' }}
-        >
-          ← Back
-        </Link>
-        <button
-          type="button"
-          onClick={goToEditAndRegenerate}
-          className="px-3 py-1.5 rounded text-sm font-medium transition hover:opacity-90"
-          style={{
-            backgroundColor: 'var(--slack-btn-default-bg)',
-            color: 'var(--slack-btn-default-text)',
-          }}
-        >
-          Edit story
-        </button>
+        {isShared ? (
+          <span className="font-semibold text-[15px]" style={{ color: 'var(--slack-text)' }}>
+            {story.title}
+          </span>
+        ) : (
+          <Link
+            to="/"
+            className="font-semibold text-[15px] hover:underline focus:outline-none focus:underline"
+            style={{ color: 'var(--slack-text)' }}
+          >
+            ← Back
+          </Link>
+        )}
+        {!isShared && (
+          <button
+            type="button"
+            onClick={goToEditAndRegenerate}
+            className="px-3 py-1.5 rounded text-sm font-medium transition hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--slack-btn-default-bg)',
+              color: 'var(--slack-btn-default-text)',
+            }}
+          >
+            Edit story
+          </button>
+        )}
       </header>
 
       <main className="flex-1 p-6 grid grid-cols-12 gap-6 min-h-0 min-w-0">
@@ -86,7 +97,7 @@ export function DemoLandingPage() {
           </p>
           <div className="flex flex-col gap-4">
             <Link
-              to={`/demo/${storyId}/full`}
+              to={{ pathname: `/demo/${storyId}/full`, search }}
               className="block p-6 rounded-lg border transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               style={{
                 backgroundColor: 'var(--slack-pane-bg)',
@@ -121,6 +132,7 @@ export function DemoLandingPage() {
                   persona={persona}
                   config={config}
                   storyId={story.id}
+                  linkSearch={search}
                 />
               )
             })}
@@ -135,17 +147,19 @@ function PersonaCard({
   persona,
   config,
   storyId,
+  linkSearch,
 }: {
   persona: Persona
   config?: { title: string; description: string }
   storyId: string
+  linkSearch: string
 }) {
   const title = config?.title ?? persona.name
   const description = config?.description ?? persona.role
 
   return (
     <Link
-      to={`/demo/${storyId}/${persona.id}`}
+      to={{ pathname: `/demo/${storyId}/${persona.id}`, search: linkSearch }}
       className="block p-6 rounded-lg border transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500"
       style={{
         backgroundColor: 'var(--slack-pane-bg)',

@@ -54,8 +54,14 @@ The app is a static SPA: **Heroku builds once on deploy** (`heroku-postbuild` �
 
 ### After deploy
 
-- Public URL: `https://<your-app-name>.herokuapp.com`
-- Share a demo: `https://<your-app-name>.herokuapp.com/demo/<demo-id>` (use **Share demo** on the home page after deploy).
+- Public URL: `https://<your-app-name>.herokuapp.com` (Heroku may show a longer hostname in the dashboard—use the **Web URL** shown there; it is what visitors should open.)
+- **Share demo** on the home page copies `https://<that-same-host>/demo/<demo-id>?shared=1`. That is the same behavior as local: recipients do not get **Back** to your full demo list or a **Demos** link in the prototype. No Heroku-only setting is required—the browser’s current origin is used automatically when you share from the deployed site.
+- Optional: if your public URL is always a **custom domain** (not the host shown in the address bar at build time), set a build-time config var so copied links use it:
+
+  ```bash
+  heroku config:set VITE_SHARE_BASE_URL=https://demos.yourcompany.com
+  git push heroku main
+  ```
 
 `dist/` stays in `.gitignore`; Heroku always builds a fresh `dist/` on push.
 

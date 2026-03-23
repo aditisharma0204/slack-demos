@@ -8,6 +8,10 @@
     "NPM_CONFIG_PRODUCTION": {
       "description": "Install devDependencies on Heroku so TypeScript and Vite can run the production build.",
       "value": "false"
+    },
+    "VITE_SHARE_BASE_URL": {
+      "description": "Optional. Public site URL for Share demo links (no trailing slash). Leave unset to use the browser origin (normal for Heroku).",
+      "required": false
     }
   }
 }
