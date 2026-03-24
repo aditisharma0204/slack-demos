@@ -46,6 +46,31 @@ export function PrimaryButton({
   )
 }
 
+/** Default-size negative action — same footprint/layout as PrimaryButton with red styling. */
+export function NegativeButton({
+  className = '',
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={`${primaryDefaultLayoutClass} ${className}`.trim()}
+      style={{
+        backgroundColor: 'var(--slack-btn-danger-bg)',
+        color: 'var(--slack-btn-danger-text)',
+        height: 36,
+        fontSize: '13px',
+        fontWeight: 600,
+        border: 'none',
+      }}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
 /**
  * Filled red destructive action. Same footprint as PrimaryButton / SecondaryButton
  * so Cancel / Delete pairs in modals align cleanly.
@@ -87,6 +112,31 @@ export function PrimaryButtonLarge({
       style={{
         backgroundColor: 'var(--slack-btn-default-bg)',
         color: 'var(--slack-btn-default-text)',
+        height: 44,
+        fontSize: '15px',
+        fontWeight: 600,
+        border: 'none',
+      }}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** Large negative action — same footprint/layout as PrimaryButtonLarge with red styling. */
+export function NegativeButtonLarge({
+  className = '',
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center flex-shrink-0 px-4 py-2 rounded-lg text-[15px] font-semibold whitespace-nowrap transition hover:opacity-90 ${className}`.trim()}
+      style={{
+        backgroundColor: 'var(--slack-btn-danger-bg)',
+        color: 'var(--slack-btn-danger-text)',
         height: 44,
         fontSize: '15px',
         fontWeight: 600,

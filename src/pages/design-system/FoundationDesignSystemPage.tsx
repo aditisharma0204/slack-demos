@@ -1,13 +1,16 @@
 import { Link } from 'react-router-dom'
 import {
   PrimaryButton,
+  NegativeButton,
   PrimaryButtonLarge,
+  NegativeButtonLarge,
   SecondaryButton,
   SecondaryButtonLarge,
   DisabledButton,
   DisabledButtonLarge,
   TextLinkButton,
 } from '@/components/ui/DesignSystemButtons'
+import { DesignSystemSelect } from '@/components/ui/DesignSystemSelect'
 
 const COLOR_SWATCHES = [
   { name: 'Text primary', token: '--slack-text', value: '#1d1c1d' },
@@ -132,6 +135,7 @@ export function FoundationDesignSystemPage() {
               </h3>
               <p className="text-xs mb-3" style={mutedStyle}>
                 Solid: <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>PrimaryButtonLarge</code>,{' '}
+                <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>NegativeButtonLarge</code>,{' '}
                 <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>SecondaryButtonLarge</code>,{' '}
                 <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>DisabledButtonLarge</code>
                 {' — '}44px height, 15px text, px-4, rounded-lg. Link style:{' '}
@@ -140,6 +144,7 @@ export function FoundationDesignSystemPage() {
               </p>
               <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
                 <PrimaryButtonLarge>Primary</PrimaryButtonLarge>
+                <NegativeButtonLarge>Negative Button</NegativeButtonLarge>
                 <SecondaryButtonLarge>Secondary</SecondaryButtonLarge>
                 <DisabledButtonLarge>Disabled</DisabledButtonLarge>
                 <TextLinkButton variant="primary" size="large">
@@ -159,6 +164,7 @@ export function FoundationDesignSystemPage() {
               </h3>
               <p className="text-xs mb-3" style={mutedStyle}>
                 Solid: <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>PrimaryButton</code>,{' '}
+                <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>NegativeButton</code>,{' '}
                 <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>SecondaryButton</code>,{' '}
                 <code className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--slack-msg-hover)' }}>DisabledButton</code>
                 {' — '}36px height, 13px text, px-3, rounded-lg. Underlined text links:{' '}
@@ -167,6 +173,7 @@ export function FoundationDesignSystemPage() {
               </p>
               <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
                 <PrimaryButton>Primary</PrimaryButton>
+                <NegativeButton>Negative Button</NegativeButton>
                 <SecondaryButton className="whitespace-nowrap">Secondary</SecondaryButton>
                 <DisabledButton>Disabled</DisabledButton>
                 <TextLinkButton variant="primary">Primary link</TextLinkButton>
@@ -183,10 +190,10 @@ export function FoundationDesignSystemPage() {
           <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
             <p className="text-[15px] leading-relaxed" style={textStyle}>
               Message from{' '}
-              <span style={{ color: 'var(--slack-mention)' }}>@Alex Kim</span>
+              <span className="mention-link">@Alex Kim</span>
               {' '}and{' '}
-              <span style={{ color: 'var(--slack-mention)' }}>@Sarah Chen</span>
-              . Use <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>formatMessageWithMentions</code> with <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>var(--slack-mention)</code>.
+              <span className="mention-link">@Sarah Chen</span>
+              . Use <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>formatMessageWithMentions</code> with <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>mention-link</code> / <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>var(--slack-mention)</code>.
             </p>
           </div>
         </section>
@@ -207,14 +214,11 @@ export function FoundationDesignSystemPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1" style={mutedStyle}>Dropdown</label>
-              <select
-                className="w-full max-w-md rounded px-2 py-2 text-sm border outline-none mx-0"
-                defaultValue=""
-              >
+              <DesignSystemSelect className="w-full max-w-md" defaultValue="">
                 <option value="">Choose...</option>
                 <option value="a">Option A</option>
                 <option value="b">Option B</option>
-              </select>
+              </DesignSystemSelect>
             </div>
           </div>
         </section>

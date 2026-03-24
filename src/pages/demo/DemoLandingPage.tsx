@@ -79,7 +79,7 @@ export function DemoLandingPage() {
           }}
         >
           <div
-            className="flex-1 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-2 [&_table]:w-full [&_th]:text-left [&_td]:p-2"
+            className="flex-1 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-2 [&_table]:w-full [&_th]:text-left [&_td]:p-2 [&_a]:text-[var(--slack-mention)] [&_a]:font-semibold"
             style={{ color: 'var(--slack-text)' }}
           >
             {storyMarkdown ? (

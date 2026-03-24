@@ -11,6 +11,8 @@ export interface ChatHeaderProps {
   viewType?: HeaderViewType
   /** Main title: "Slackbot", "#channel-name", or "Thread". */
   title?: string
+  /** Optional custom avatar for app/slackbot view. */
+  avatarUrl?: string
   /** Optional: for thread view, a short parent message preview (e.g. first line of the message this thread is under). */
   threadParentPreview?: string
 }
@@ -139,6 +141,7 @@ function DefaultHeaderActions({ viewType }: { viewType: HeaderViewType }) {
 export function ChatHeader({
   viewType = 'slackbot',
   title = 'Slackbot',
+  avatarUrl = '/assets/slackbot-icon.png',
 }: ChatHeaderProps) {
   return (
     <header className="flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e0e0e0' }}>
@@ -146,7 +149,7 @@ export function ChatHeader({
         <div className="flex items-center gap-2 min-w-0">
           {viewType === 'slackbot' && (
             <img
-              src="/assets/slackbot-icon.png"
+              src={avatarUrl}
               alt={title}
               className="w-9 h-9 rounded-md object-cover flex-shrink-0"
             />

@@ -57,11 +57,7 @@ export function formatMessageWithMentions(text: string, personaNames: string[]):
               else result.pop()
             }
           }
-          result.push(
-            <span key={`@${name}-${i}`} style={{ color: 'var(--slack-mention)' }}>
-              @{name}
-            </span>
-          )
+          result.push(<span key={`@${name}-${i}`} className="mention-link">@{name}</span>)
         }
         if (seg) result.push(seg)
       })

@@ -70,6 +70,10 @@ interface ChatViewProps {
   onChoiceClick?: (choice: string) => void
   /** Header title (e.g. "Slackbot", "#hr-relocation-leads", "Thread") */
   title?: string
+  /** App persona display name for app/thinking rows. */
+  appName?: string
+  /** App persona avatar URL for slackbot header and app rows. */
+  appAvatarUrl?: string
   /** Which header variant to show: slackbot (DM), channel, or thread. Defaults from title if not set. */
   viewType?: HeaderViewType
 }
@@ -82,6 +86,8 @@ export function ChatView({
   onSend,
   onChoiceClick,
   title = 'Slackbot',
+  appName = 'Slackbot',
+  appAvatarUrl = '/assets/slackbot-icon.png',
   viewType = 'slackbot',
 }: ChatViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -113,7 +119,7 @@ export function ChatView({
       style={{ backgroundColor: '#ffffff', height: '100%', borderRadius: 0, boxSizing: 'border-box' }}
     >
       {/* Header: use shared ChatHeader so channel/thread show correct layout and actions */}
-      <SharedChatHeader viewType={viewType} title={title} />
+      <SharedChatHeader viewType={viewType} title={title} avatarUrl={appAvatarUrl} />
 
       {/* Messages area - scrollable; spacer pushes content to bottom when short; content overflows and scrolls when long */}
       <div
@@ -139,6 +145,7 @@ export function ChatView({
                 onChoiceClick={onChoiceClick}
                 botTypingEnabled={msg.isApp === true && msg.id === typingBotMessageId}
                 onBotTypingTick={scrollToBottom}
+                appAvatarUrl={appAvatarUrl}
               />
             )
           )}
@@ -146,8 +153,8 @@ export function ChatView({
             <div className="slack-msg-row group relative w-full overflow-visible py-1.5 transition-[background-color] duration-100 ease-out hover:bg-[var(--slack-msg-hover)] focus-within:bg-[var(--slack-msg-hover)]">
               <div className="relative flex w-full gap-3 px-4 overflow-visible">
                 <img
-                  src="/assets/slackbot-icon.png"
-                  alt="Slackbot"
+                  src={appAvatarUrl}
+                  alt={appName}
                   className="w-9 h-9 rounded-lg flex-shrink-0 object-cover"
                 />
                 <div className="flex-1 min-w-0 overflow-visible">
@@ -155,7 +162,7 @@ export function ChatView({
                     <MessageHoverActions />
                     <div className="flex items-baseline gap-2 min-h-[18px]">
                       <span className="font-extrabold text-[15px]" style={{ color: 'var(--slack-text)' }}>
-                        Slackbot
+                        {appName}
                       </span>
                       <span className="text-[11px]" style={{ color: 'var(--slack-msg-muted)' }}>
                         Just now
@@ -566,12 +573,14 @@ function ChatMessage({
   onChoiceClick,
   botTypingEnabled = false,
   onBotTypingTick,
+  appAvatarUrl = '/assets/slackbot-icon.png',
 }: {
   message: Message
   onChoiceClick?: (choice: string) => void
   /** When true and this is the latest app message, body text types out like the composer */
   botTypingEnabled?: boolean
   onBotTypingTick?: () => void
+  appAvatarUrl?: string
 }) {
   const isSystem = message.author === 'System'
   const isApp = message.isApp ?? false
@@ -656,7 +665,7 @@ function ChatMessage({
       <div className="relative flex w-full gap-3 px-4 overflow-visible">
         {isApp ? (
           <img
-            src="/assets/slackbot-icon.png"
+            src={appAvatarUrl}
             alt={message.author}
             className="w-9 h-9 rounded-lg flex-shrink-0 object-cover pt-0 pb-0"
           />

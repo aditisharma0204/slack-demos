@@ -151,6 +151,9 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
   const activeView = getActiveViewForStep(steps, stepIndex)
   const surface = getSurfaceAtStep(steps, stepIndex)
   const channelName = surface?.kind === 'channel' ? (surface.channel ?? '#channel') : undefined
+  const appPersona = story.personas.find((persona) => persona.type === 'app')
+  const appName = appPersona?.name ?? 'Slackbot'
+  const appAvatarUrl = appPersona?.avatar?.trim() || '/assets/slackbot-icon.png'
 
   const slackbotState = computeChatStateForView(steps, stepIndex, 'slackbot', story.personas, lastSelectedChoice)
   const channelState = computeChatStateForView(steps, stepIndex, 'channel', story.personas, lastSelectedChoice)
@@ -192,6 +195,8 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
         key={view}
         viewType={view}
         title={title}
+        appName={appName}
+        appAvatarUrl={appAvatarUrl}
         messages={state.chatMessages}
         pendingUserMessage={isActive ? state.pendingUserMessage : undefined}
         showThinking={isActive ? state.showThinking : false}
@@ -215,7 +220,7 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
       >
         {isSingle ? (
           <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden rounded-2xl" style={{ width: '100%' }}>
-            {singleView === 'slackbot' && renderPane('slackbot', slackbotState, 'Slackbot')}
+            {singleView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
             {singleView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
             {singleView === 'thread' && renderPane('thread', threadState, 'Thread')}
           </div>
@@ -232,7 +237,7 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
               className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl box-border"
               style={{ flex: '0 0 40%' }}
             >
-              {rightView === 'slackbot' && renderPane('slackbot', slackbotState, 'Slackbot')}
+              {rightView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
               {rightView === 'thread' && renderPane('thread', threadState, 'Thread')}
             </div>
           </>

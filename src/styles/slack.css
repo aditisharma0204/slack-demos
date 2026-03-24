@@ -39,7 +39,7 @@
   --slack-btn-default-bg: rgba(0, 122, 90, 1);
   --slack-btn-default-text: rgba(255, 255, 255, 1);
   /* Destructive primary (filled red) — confirmations, delete */
-  --slack-btn-danger-bg: #c53030;
+  --slack-btn-danger-bg: #e01e5a;
   --slack-btn-danger-text: #ffffff;
   --slack-btn-bg: #ffffff;
   --slack-btn-border: #d1d1d1;
@@ -270,6 +270,12 @@ button.link-button.link-button--disabled:disabled,
 button.link-button.link-button--large,
 .link-button.link-button--large {
   font-size: 15px;
+  font-weight: 600;
+}
+
+/* Mention/text-link token usage for inline entities (e.g. @persona names). */
+.mention-link {
+  color: var(--slack-mention);
   font-weight: 600;
 }
 

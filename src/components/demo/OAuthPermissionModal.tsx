@@ -13,7 +13,7 @@ const textPrimary = '#1d1c1d'
 const textMuted = '#616061'
 const borderLight = 'rgba(97, 96, 97, 0.2)'
 const greyPanel = '#f8f8f8'
-const linkBlue = '#1264a3'
+const linkBlue = 'var(--slack-mention)'
 
 export interface OAuthPermissionModalProps {
   /** Right-hand app in the title (e.g. Cornerstone OnDemand, Workday) */
