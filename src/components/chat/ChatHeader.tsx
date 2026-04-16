@@ -15,6 +15,8 @@ export interface ChatHeaderProps {
   avatarUrl?: string
   /** Optional: for thread view, a short parent message preview (e.g. first line of the message this thread is under). */
   threadParentPreview?: string
+  /** Channel view only: hide the Calls / huddle pill (e.g. embedded Mission Control canvas). Default true. */
+  channelShowCalls?: boolean
 }
 
 /* Pill-style header buttons: white background. No color set so icons stay dark. */
@@ -62,43 +64,24 @@ function CloseIcon() {
   )
 }
 
-/** Star icon for channel view (from Figma / public/assets/Star.svg). */
-function ChannelStarIcon() {
-  return (
-    <img
-      src="/assets/Star.svg"
-      alt=""
-      className="w-5 h-5 flex-shrink-0 object-contain"
-      aria-hidden
-    />
-  )
-}
-
-/** Channel view header actions: 3 pill buttons matching Figma (Image 2). */
-function ChannelHeaderActions() {
+/** Channel view header actions: optional Calls, more. */
+function ChannelHeaderActions({ showCalls = true }: { showCalls?: boolean }) {
   const iconClass = 'w-5 h-5 object-contain flex-shrink-0'
   const pillStyle = { ...headerPillStyle, paddingLeft: 8, paddingRight: 8 }
   return (
     <div className="flex items-center gap-2">
-      <button
-        className={headerPillClass}
-        style={pillStyle}
-        type="button"
-        aria-label="Channel members (12)"
-      >
-        <img src="/assets/user.svg" alt="" className={iconClass} aria-hidden />
-        <span className="text-sm font-medium" style={{ color: '#1d1c1d' }}>12</span>
-      </button>
-      <button
-        className={headerPillClass}
-        style={pillStyle}
-        type="button"
-        aria-label="Calls"
-      >
-        <img src="/assets/headphones.svg" alt="" className={iconClass} aria-hidden />
-        <span className="w-px self-stretch bg-[#1d1c1d]/30 rounded-full flex-shrink-0" aria-hidden />
-        <img src="/assets/icon-composer-caret-down.svg" alt="" className="w-4 h-4 object-contain flex-shrink-0" aria-hidden />
-      </button>
+      {showCalls && (
+        <button
+          className={headerPillClass}
+          style={pillStyle}
+          type="button"
+          aria-label="Calls"
+        >
+          <img src="/assets/headphones.svg" alt="" className={iconClass} aria-hidden />
+          <span className="w-px self-stretch bg-[#1d1c1d]/30 rounded-full flex-shrink-0" aria-hidden />
+          <img src="/assets/icon-composer-caret-down.svg" alt="" className="w-4 h-4 object-contain flex-shrink-0" aria-hidden />
+        </button>
+      )}
       <button
         className={`${headerPillClass} !px-2.5`}
         style={pillStyle}
@@ -142,26 +125,18 @@ export function ChatHeader({
   viewType = 'slackbot',
   title = 'Slackbot',
   avatarUrl = '/assets/slackbot-icon.png',
+  channelShowCalls = true,
 }: ChatHeaderProps) {
   return (
     <header className="flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e0e0e0' }}>
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2 min-w-0">
-          {viewType === 'slackbot' && (
+          {(viewType === 'slackbot' || viewType === 'channel') && (
             <img
               src={avatarUrl}
               alt={title}
               className="w-9 h-9 rounded-md object-cover flex-shrink-0"
             />
-          )}
-          {viewType === 'channel' && (
-            <div
-              className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'var(--slack-msg-hover)' }}
-              aria-hidden
-            >
-              <ChannelStarIcon />
-            </div>
           )}
           <div className="min-w-0">
             <h1
@@ -172,7 +147,11 @@ export function ChatHeader({
             </h1>
           </div>
         </div>
-        {viewType === 'channel' ? <ChannelHeaderActions /> : <DefaultHeaderActions viewType={viewType} />}
+        {viewType === 'channel' ? (
+          <ChannelHeaderActions showCalls={channelShowCalls} />
+        ) : (
+          <DefaultHeaderActions viewType={viewType} />
+        )}
       </div>
     </header>
   )

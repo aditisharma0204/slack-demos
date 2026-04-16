@@ -605,6 +605,14 @@ function ChatMessage({
   const showTypingPlaceholder =
     isApp && typingPlain.length > 0 && botTypedLen < typingPlain.length
 
+  useEffect(() => {
+    // After bot typing completes, templates can expand (e.g. reveal action buttons).
+    // Re-align to bottom so the whole message block is visible without manual scroll.
+    if (!isSystem && isApp && botTypingEnabled && !showTypingPlaceholder) {
+      onBotTypingTick?.()
+    }
+  }, [isSystem, isApp, botTypingEnabled, showTypingPlaceholder, onBotTypingTick])
+
   const templateId = message.templateId
   const templateDef = templateId ? getTemplateById(templateId) : undefined
   const templateType = (templateDef?.type ?? templateId) as string | undefined

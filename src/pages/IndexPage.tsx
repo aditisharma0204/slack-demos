@@ -13,8 +13,31 @@ import moreActionsCardIcon from '@/assets/icons/More actions.svg'
 import forwardMessageIcon from '@/assets/icons/Forword message.svg'
 import { getShareLinkOrigin, sharedDemoUrlSuffix } from '@/utils/sharedDemoLink'
 
+const HIDDEN_DEMOS_STORAGE_KEY = 'hiddenDemoIds'
+
+function loadHiddenDemoIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_DEMOS_STORAGE_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return new Set()
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'))
+  } catch {
+    return new Set()
+  }
+}
+
+function persistHiddenDemoIds(hiddenIds: Set<string>) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(HIDDEN_DEMOS_STORAGE_KEY, JSON.stringify(Array.from(hiddenIds)))
+}
+
 export function IndexPage() {
-  const stories = getStories()
+  const [stories, setStories] = useState(() => {
+    const hiddenIds = loadHiddenDemoIds()
+    return getStories().filter((story) => !hiddenIds.has(story.id))
+  })
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
   const [demoMenuOpenId, setDemoMenuOpenId] = useState<string | null>(null)
   const [shareCopiedToast, setShareCopiedToast] = useState(false)
@@ -77,7 +100,11 @@ export function IndexPage() {
     try {
       const res = await fetch(`/api/demos/${encodeURIComponent(id)}`, { method: 'DELETE' })
       if (res.status === 204) {
-        window.location.reload()
+        setStories((prev) => prev.filter((story) => story.id !== id))
+        const hiddenIds = loadHiddenDemoIds()
+        hiddenIds.add(id)
+        persistHiddenDemoIds(hiddenIds)
+        setDemoMenuOpenId(null)
         return
       }
       if (res.status === 404) {

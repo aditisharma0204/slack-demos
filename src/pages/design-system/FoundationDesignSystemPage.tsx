@@ -21,7 +21,8 @@ const COLOR_SWATCHES = [
   { name: 'White', value: '#ffffff' },
   { name: 'Primary / accent', token: '--slack-avatar-bg', value: '#611f69' },
   { name: 'Sidebar', token: '--slack-sidebar-bg', value: '#3F0E40' },
-  { name: 'Mention link', token: '--slack-mention', value: '#1264a3' },
+  { name: 'Mention text', token: '--slack-mention', value: '#1264a3' },
+  { name: 'Mention background', token: '--slack-mention-bg', value: '#e8f2fc' },
 ]
 
 const pageStyle = { backgroundColor: 'unset', background: 'unset' }
@@ -33,7 +34,7 @@ export function FoundationDesignSystemPage() {
   return (
     <div className="min-h-screen flex flex-col" style={pageStyle}>
       <header
-        className="flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
+        className="sticky top-0 z-20 flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
         style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
         <Link
@@ -184,16 +185,16 @@ export function FoundationDesignSystemPage() {
           </div>
         </section>
 
-        {/* Text link / mention (persona names as in formatMessageWithMentions) */}
+        {/* Mention treatment (persona names as in formatMessageWithMentions) */}
         <section>
-          <h2 className="font-bold text-lg mb-4" style={textStyle}>Text link (mention)</h2>
+          <h2 className="font-bold text-lg mb-4" style={textStyle}>Mention pill</h2>
           <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
             <p className="text-[15px] leading-relaxed" style={textStyle}>
               Message from{' '}
               <span className="mention-link">@Alex Kim</span>
               {' '}and{' '}
               <span className="mention-link">@Sarah Chen</span>
-              . Use <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>formatMessageWithMentions</code> with <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>mention-link</code> / <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>var(--slack-mention)</code>.
+              . Use <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>formatMessageWithMentions</code> with <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>mention-link</code>, <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>var(--slack-mention)</code>, and <code className="px-1 py-0.5 rounded text-[13px]" style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-msg-muted)' }}>var(--slack-mention-bg)</code>.
             </p>
           </div>
         </section>

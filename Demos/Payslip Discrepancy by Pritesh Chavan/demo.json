@@ -1,0 +1,213 @@
+{
+  "id": "payslip-discrepancy-by-pritesh-chavan",
+  "title": "Payslip Discrepancy",
+  "createdBy": "Pritesh Chavan",
+  "workspaceName": "Acme Inc",
+  "personas": [
+    {
+      "id": "julia",
+      "name": "Julia Anderson",
+      "designation": "Employee",
+      "role": "London office; reports missing £2,500 on payslip via HR Service Bot DM",
+      "type": "user"
+    },
+    {
+      "id": "priya",
+      "name": "Priya Nair",
+      "designation": "HR Payroll Operations",
+      "role": "Runs regional reconciler in #hr-payroll-operations and approves off-cycle correction batch",
+      "type": "user"
+    },
+    {
+      "id": "slackbot",
+      "name": "Slackbot",
+      "designation": "App",
+      "role": "HR Service Bot: reconciles Workday and ADP, logs incidents, surfaces batch payroll remediation",
+      "type": "app"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "surface",
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
+    },
+    {
+      "id": "step-2",
+      "type": "user_message",
+      "content": {
+        "text": "Hey, I just checked my payslip and it looks like I'm missing \u00a32,500. Can you log an incident for me?",
+        "personaId": "julia"
+      }
+    },
+    {
+      "id": "step-3",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Cross-checking Workday, ADP, and this pay cycle for London / EMEA GBP\u2026"
+      }
+    },
+    {
+      "id": "step-4",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Hi Julia\u2014I've noticed something off, and I'm glad you pinged me.\n\n*What I checked in your workspace*\n\u2022 Workday: your approved base + London allowance for February\n\u2022 ADP: what actually landed on this payslip\n\u2022 Result: you're short *\u00a32,500* versus what Workday sent over\n\n*What happens next*\n\u2022 I'll log a payroll incident tied to your record and attach these snapshots\n\u2022 I'll flag payroll ops in *#hr-payroll-operations* with a regional scan\u2014this pattern usually isn't one person only\n\u2022 I'll keep you updated right here in DM\n\nThis doesn't look like a one-off typo on your profile; it matches a sync issue on the EMEA GBP lane. When you're ready, log the incident and I'll take it from there.\n\nChoose an action below to continue.",
+        "choices": ["Log payroll incident"]
+      }
+    },
+    {
+      "id": "step-5",
+      "type": "user_action",
+      "content": {
+        "action": "log_payroll_incident",
+        "trigger": "button",
+        "personaId": "julia",
+        "choices": ["Log payroll incident"]
+      }
+    },
+    {
+      "id": "step-6",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Logging INC-PAY-2044 and running the regional correlation scan\u2026"
+      }
+    },
+    {
+      "id": "step-7",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "I've handled the paperwork on your side, Julia.\n\n*Your incident*\n\u2022 ID: *INC-PAY-2044*\n\u2022 Amount flagged: *\u00a32,500* (February cycle, London)\n\u2022 I've attached Workday vs ADP snapshots for the payroll team\n\nI'm escalating to *#hr-payroll-operations* now so they can correct this at the batch level. You'll hear from me here as soon as there's a payment date."
+      }
+    },
+    {
+      "id": "step-8",
+      "type": "surface",
+      "context": {
+        "surface": "channel",
+        "channel": "#hr-payroll-operations"
+      }
+    },
+    {
+      "id": "step-9",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "construct_case",
+        "text": "Regional payroll sync alert triggered by employee report (Julia Anderson, London).",
+        "caseTitle": "INC-PAY-2044",
+        "caseStatus": "Batch review",
+        "caseFields": [
+          {
+            "label": "Root cause (AI assessment)",
+            "value": "EMEA GBP payroll bridge sync dropped recurring allowance rows for Feb 2026 cycle"
+          },
+          {
+            "label": "Reporter",
+            "value": "Julia Anderson \u2014 London office"
+          },
+          {
+            "label": "Single-report variance",
+            "value": "\u00a32,500 underpayment vs Workday"
+          },
+          {
+            "label": "Correlated impact",
+            "value": "76 employees same lane / cycle"
+          },
+          {
+            "label": "Total estimated variance",
+            "value": "\u00a3190,000 across affected population"
+          },
+          {
+            "label": "Recommended action",
+            "value": "Run regional reconciler \u2192 approve off-cycle correction file to ADP"
+          }
+        ],
+        "caseNote": "Priya\u2014you can reconcile all 76 in one pass; employee DMs will update automatically after submit.",
+        "choices": ["Run regional reconciler"]
+      }
+    },
+    {
+      "id": "step-10",
+      "type": "user_action",
+      "content": {
+        "action": "run_regional_reconciler",
+        "trigger": "button",
+        "personaId": "priya",
+        "choices": ["Run regional reconciler"]
+      }
+    },
+    {
+      "id": "step-11",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Replaying Workday \u2192 ADP delta for EMEA GBP Feb 2026\u2026"
+      }
+    },
+    {
+      "id": "step-12",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "I've noticed the full picture now\u2014thanks to Julia's report, we caught it before the problem spread further across the cycle.\n\n*Reconciler results*\n\u2022 *76* employees with the same missing allowance mapping\n\u2022 Per-person fix: restore *\u00a32,500* where that allowance applies (a few rows vary by grade; I've normalized in the file)\n\u2022 Off-cycle file *OC-EMEA-2026-02-B* is staged in ADP\n\nYou can approve the batch correction and I'll notify everyone affected in Slack once ADP accepts the file.\n\nChoose an action below to continue.",
+        "choices": ["Approve off-cycle correction"]
+      }
+    },
+    {
+      "id": "step-13",
+      "type": "user_action",
+      "content": {
+        "action": "approve_off_cycle_correction",
+        "trigger": "button",
+        "personaId": "priya",
+        "choices": ["Approve off-cycle correction"]
+      }
+    },
+    {
+      "id": "step-14",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Submitting off-cycle file to ADP and queuing employee notifications\u2026"
+      }
+    },
+    {
+      "id": "step-15",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "I've handled the submission, Priya.\n\n*What just landed*\n\u2022 ADP accepted *OC-EMEA-2026-02-B*\n\u2022 *76* corrections queued for the next off-cycle pay run\n\u2022 Incident *INC-PAY-2044* linked to the batch for audit\n\nAffected employees (including Julia) are getting a clear DM with timing next. Nice work closing the loop at scale."
+      }
+    },
+    {
+      "id": "step-16",
+      "type": "surface",
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot",
+        "personaId": "julia",
+        "resetConversation": true
+      }
+    },
+    {
+      "id": "step-17",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Julia\u2014quick update, and thank you again for flagging this.\n\n*Your pay*\n\u2022 We've confirmed the *\u00a32,500* miss was part of a regional sync issue\u2014not something you did wrong\n\u2022 Payroll approved an off-cycle correction; you're in the batch with *75* colleagues who had the same mapping gap\n\u2022 Funds should hit on the *next off-cycle date* shown in your payroll calendar (I'll sync if that slips)\n\nIf anything still looks off after it posts, ping me here and I'll re-reconcile with Workday and ADP immediately."
+      }
+    }
+  ]
+}

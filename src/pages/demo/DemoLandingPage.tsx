@@ -38,7 +38,7 @@ export function DemoLandingPage() {
       style={{ backgroundColor: 'var(--slack-main-bg)' }}
     >
       <header
-        className="flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
+        className="sticky top-0 z-20 flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
         style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
         {isShared ? (
@@ -79,7 +79,7 @@ export function DemoLandingPage() {
           }}
         >
           <div
-            className="flex-1 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-2 [&_table]:w-full [&_th]:text-left [&_td]:p-2 [&_a]:text-[var(--slack-mention)] [&_a]:font-semibold"
+            className="demo-story-markdown flex-1 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed [&_h2]:text-base [&_h3]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-2 [&_table]:w-full [&_th]:text-left [&_td]:p-2 [&_a]:text-[var(--slack-mention)] [&_a]:font-semibold"
             style={{ color: 'var(--slack-text)' }}
           >
             {storyMarkdown ? (

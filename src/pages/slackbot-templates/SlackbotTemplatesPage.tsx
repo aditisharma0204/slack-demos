@@ -57,7 +57,7 @@ export function SlackbotTemplatesPage() {
   return (
     <div className="min-h-screen flex flex-col" style={pageStyle}>
       <header
-        className="flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
+        className="sticky top-0 z-20 flex-shrink-0 px-6 py-4 border-b flex items-center justify-between"
         style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
         <Link

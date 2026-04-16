@@ -1,0 +1,15 @@
+{
+  "personaId": "sarah",
+  "title": "Sarah",
+  "description": "Engineering Manager who reviews and approves Alex's promotion request",
+  "stepIds": [
+    "step-18",
+    "step-19",
+    "step-20"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Sarah. Review Alex's promotion request details and approve it in Slackbot.",
+    "channels": ["#general", "#engineering-leadership"],
+    "dms": ["Slackbot", "Alex"]
+  }
+}

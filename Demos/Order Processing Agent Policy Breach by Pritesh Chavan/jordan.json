@@ -1,0 +1,35 @@
+{
+  "personaId": "jordan",
+  "title": "Jordan Rivera",
+  "description": "IT Director responding to a critical Order Processing Agent policy breach in DM with MC Agent—Mission Control split view, remediation, traffic control, retrain, deploy, and fleet digest",
+  "stepIds": [
+    "step-1",
+    "step-2",
+    "step-3",
+    "step-4",
+    "step-8",
+    "step-9",
+    "step-10",
+    "step-11",
+    "step-12",
+    "step-13",
+    "step-14",
+    "step-15",
+    "step-16",
+    "step-17",
+    "step-18",
+    "step-19",
+    "step-20",
+    "step-21",
+    "step-22",
+    "step-23",
+    "step-24",
+    "step-25",
+    "step-26"
+  ],
+  "overrides": {
+    "introInstructions": "You're Jordan in a DM with MC Agent. Review the critical alert, open Mission Control (split view: tower + chat), run remediation—stop traffic, capture & retrain, deploy—and read the App Home fleet digest.",
+    "channels": [],
+    "dms": ["MC Agent"]
+  }
+}

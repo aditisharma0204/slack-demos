@@ -6,14 +6,14 @@
   "personas": [
     {
       "id": "sarah",
-      "name": "Sarah",
+      "name": "Sarah Mitchell",
       "designation": "Employee",
       "role": "Filing a confidential workplace conduct report",
       "type": "user"
     },
     {
       "id": "james",
-      "name": "James",
+      "name": "James Parker",
       "designation": "ER Lead",
       "role": "Receives and reviews confidential cases from Employee Relations queue",
       "type": "user"
@@ -30,17 +30,26 @@
     {
       "id": "step-1",
       "type": "surface",
-      "context": { "surface": "dm", "with": "Slackbot" }
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
     },
     {
       "id": "step-2",
       "type": "user_message",
-      "content": { "text": "Hi, I was mentally harassed at workplace. I would like to file a case but confidential.", "personaId": "sarah" }
+      "content": {
+        "text": "Hi, I was mentally harassed at workplace. I would like to file a case but confidential.",
+        "personaId": "sarah"
+      }
     },
     {
       "id": "step-3",
       "type": "bot_typing",
-      "content": { "duration": 1, "statusText": "Thinking" }
+      "content": {
+        "duration": 1,
+        "statusText": "Thinking"
+      }
     },
     {
       "id": "step-4",
@@ -57,7 +66,13 @@
         "action": "select_category",
         "trigger": "button",
         "personaId": "sarah",
-        "choices": ["Emotional Abuse", "Harassment", "Mental Abuse", "Physical Abuse", "Sexual Exploitation"]
+        "choices": [
+          "Emotional Abuse",
+          "Harassment",
+          "Mental Abuse",
+          "Physical Abuse",
+          "Sexual Exploitation"
+        ]
       }
     },
     {
@@ -79,7 +94,9 @@
     {
       "id": "step-8",
       "type": "bot_typing",
-      "content": { "duration": 1 }
+      "content": {
+        "duration": 1
+      }
     },
     {
       "id": "step-9",
@@ -100,7 +117,10 @@
     {
       "id": "step-11",
       "type": "surface",
-      "context": { "surface": "channel", "channel": "#er-confidential" }
+      "context": {
+        "surface": "channel",
+        "channel": "#er-confidential"
+      }
     },
     {
       "id": "step-12",
@@ -112,8 +132,14 @@
         "caseTitle": "ER-2025-042",
         "caseStatus": "Confidential",
         "caseFields": [
-          { "label": "Case ID", "value": "ER-2025-042" },
-          { "label": "Routing", "value": "ER queue only — no notifications to subject or department" }
+          {
+            "label": "Case ID",
+            "value": "ER-2025-042"
+          },
+          {
+            "label": "Routing",
+            "value": "ER queue only \u2014 no notifications to subject or department"
+          }
         ],
         "caseNote": "Please review when ready."
       }

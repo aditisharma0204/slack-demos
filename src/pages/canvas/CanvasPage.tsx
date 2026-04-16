@@ -90,7 +90,7 @@ export function CanvasPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f8f8f8' }}>
       <header
-        className="flex-shrink-0 px-6 border-b flex flex-col"
+        className="sticky top-0 z-20 flex-shrink-0 px-6 border-b flex flex-col"
         style={{ backgroundColor: 'var(--slack-pane-bg)', borderColor: 'var(--slack-border)' }}
       >
         <div className="py-4 flex items-center justify-between">

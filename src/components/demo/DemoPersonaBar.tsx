@@ -49,7 +49,7 @@ export function DemoPersonaBar({
       className="demo-persona-bar flex items-center justify-between gap-4 px-6 shrink-0"
       style={{
         height: 56,
-        backgroundColor: 'var(--slack-footer-bg)',
+        backgroundColor: 'var(--color-gray-900)',
       }}
     >
       <div className="flex items-center gap-4 min-w-0 flex-1">

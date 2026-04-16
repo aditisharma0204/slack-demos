@@ -13,7 +13,7 @@
     },
     {
       "id": "jason",
-      "name": "Jason",
+      "name": "Jason Miller",
       "designation": "HR Business Partner",
       "role": "Manages relocation case in #hr-relocation-leads",
       "type": "user"
@@ -37,7 +37,10 @@
     {
       "id": "step-1",
       "type": "surface",
-      "context": { "surface": "dm", "with": "Slackbot" }
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
     },
     {
       "id": "step-2",
@@ -50,16 +53,22 @@
     {
       "id": "step-3",
       "type": "bot_typing",
-      "content": { "duration": 1, "statusText": "Analyzing your profile..." }
+      "content": {
+        "duration": 1,
+        "statusText": "Analyzing your profile..."
+      }
     },
     {
       "id": "step-4",
       "type": "app_message",
       "content": {
-        "text": "Hi Julia! I can help.\n\nI've analyzed your profile:\n• Tenure: 3 years\n• Performance: Exceeds Expectations\n• Eligible for *Executive Move* package\n\nWould you like me to start an application for you?",
+        "text": "Hi Julia! I can help.\n\nI've analyzed your profile:\n\u2022 Tenure: 3 years\n\u2022 Performance: Exceeds Expectations\n\u2022 Eligible for *Executive Move* package\n\nWould you like me to start an application for you?",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "choices": ["Yes, start my application", "Tell me more about the package"]
+        "choices": [
+          "Yes, start my application",
+          "Tell me more about the package"
+        ]
       }
     },
     {
@@ -69,14 +78,16 @@
         "action": "start_application",
         "trigger": "button",
         "personaId": "julia",
-        "choices": ["Yes, start my application"]
+        "choices": [
+          "Yes, start my application"
+        ]
       }
     },
     {
       "id": "step-6",
       "type": "app_message",
       "content": {
-        "text": "Perfect! I've created Case #9912 and notified the HR relocation team.\n\n• You'll hear from them within 1 business day\n• Estimated process: 12 weeks\n\nI'll keep you updated every step of the way.",
+        "text": "Perfect! I've created Case #9912 and notified the HR relocation team.\n\n\u2022 You'll hear from them within 1 business day\n\u2022 Estimated process: 12 weeks\n\nI'll keep you updated every step of the way.",
         "personaId": "slackbot",
         "templateId": "plain_text"
       }
@@ -84,7 +95,10 @@
     {
       "id": "step-7",
       "type": "surface",
-      "context": { "surface": "channel", "channel": "#hr-relocation-leads" }
+      "context": {
+        "surface": "channel",
+        "channel": "#hr-relocation-leads"
+      }
     },
     {
       "id": "step-8",
@@ -94,14 +108,35 @@
         "templateId": "construct_case",
         "text": "New Relocation Request: Case #9912",
         "caseTitle": "Case #9912",
-        "choices": ["Claim Case", "View Full Assessment"],
+        "choices": [
+          "Claim Case",
+          "View Full Assessment"
+        ],
         "caseFields": [
-          { "label": "Employee", "value": "Julia Anderson" },
-          { "label": "Route", "value": "London (LHR) → New York (JFK)" },
-          { "label": "Tier", "value": "Executive Move" },
-          { "label": "Preliminary budget", "value": "$45,000" },
-          { "label": "Performance", "value": "Exceeds Expectations" },
-          { "label": "Flagged", "value": "Cross-border tax nexus & L-1 visa required" }
+          {
+            "label": "Employee",
+            "value": "Julia Anderson"
+          },
+          {
+            "label": "Route",
+            "value": "London (LHR) \u2192 New York (JFK)"
+          },
+          {
+            "label": "Tier",
+            "value": "Executive Move"
+          },
+          {
+            "label": "Preliminary budget",
+            "value": "$45,000"
+          },
+          {
+            "label": "Performance",
+            "value": "Exceeds Expectations"
+          },
+          {
+            "label": "Flagged",
+            "value": "Cross-border tax nexus & L-1 visa required"
+          }
         ]
       }
     },
@@ -113,7 +148,10 @@
         "trigger": "button",
         "personaId": "jason",
         "templateId": "text_with_buttons",
-        "choices": ["Claim Case", "View Full Assessment"]
+        "choices": [
+          "Claim Case",
+          "View Full Assessment"
+        ]
       }
     },
     {
@@ -123,8 +161,11 @@
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "@Jason, I've initialized the London → New York Executive Relocation paved path. Here's your current checklist:\n\n*12-Step Relocation Service Plan*\n:white_check_mark: Step 1: Intake — Employee request and route captured; case logged. Completed.\n:white_check_mark: Step 2: Eligibility — Tenure and performance checked; tier assigned. Completed.\n:white_check_mark: Step 3: Case creation — Case #9912 created and assigned to this channel. Completed.\n:zap: Step 4: Tax & immigration review — Assess nexus and visa; recommend move date. Action required.\n:zap: Step 5: Vendor coordination — Notify moving co, schedule survey, send calendar invites. Action required.\n:clipboard: Step 6: Housing quote — Generate and share housing options. Listed.\n:clipboard: Step 7: Home survey — Virtual or on-site survey with mover. Listed.\n:clipboard: Step 8: Move date confirmation — Lock date with vendor and employee. Listed.\n:clipboard: Step 9: Moving company handoff — Finalize contract and packing timeline. Listed.\n:clipboard: Step 10: Pre-move checklist — Documents, keys, change of address. Listed.\n:clipboard: Step 11: Move execution — Moving day coordination. Listed.\n:clipboard: Step 12: Close-out — Sign-off, expense reconciliation, case closed. Listed.\n\nYou're on Step 4. Choose an action below to continue.",
-        "choices": ["Review Tax Alert", "Notify Moving Co"]
+        "text": "@Jason, I've initialized the London \u2192 New York Executive Relocation paved path. Here's your current checklist:\n\n*12-Step Relocation Service Plan*\n:white_check_mark: Step 1: Intake \u2014 Employee request and route captured; case logged. Completed.\n:white_check_mark: Step 2: Eligibility \u2014 Tenure and performance checked; tier assigned. Completed.\n:white_check_mark: Step 3: Case creation \u2014 Case #9912 created and assigned to this channel. Completed.\n:zap: Step 4: Tax & immigration review \u2014 Assess nexus and visa; recommend move date. Action required.\n:zap: Step 5: Vendor coordination \u2014 Notify moving co, schedule survey, send calendar invites. Action required.\n:clipboard: Step 6: Housing quote \u2014 Generate and share housing options. Listed.\n:clipboard: Step 7: Home survey \u2014 Virtual or on-site survey with mover. Listed.\n:clipboard: Step 8: Move date confirmation \u2014 Lock date with vendor and employee. Listed.\n:clipboard: Step 9: Moving company handoff \u2014 Finalize contract and packing timeline. Listed.\n:clipboard: Step 10: Pre-move checklist \u2014 Documents, keys, change of address. Listed.\n:clipboard: Step 11: Move execution \u2014 Moving day coordination. Listed.\n:clipboard: Step 12: Close-out \u2014 Sign-off, expense reconciliation, case closed. Listed.\n\nYou're on Step 4. Choose an action below to continue.",
+        "choices": [
+          "Review Tax Alert",
+          "Notify Moving Co"
+        ]
       }
     },
     {
@@ -134,7 +175,9 @@
         "action": "review_tax_alert",
         "trigger": "button",
         "personaId": "jason",
-        "choices": ["Review Tax Alert"]
+        "choices": [
+          "Review Tax Alert"
+        ]
       }
     },
     {
@@ -144,8 +187,12 @@
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Tax & Immigration Insight: New York state nexus creates double-taxation risk. AI recommendation: adjust move date to October 1st, 2026 to minimize tax exposure by £8,200. L-1 eligible, 4–6 weeks.",
-        "choices": ["Accept October 1st", "Keep July 15th", "Consult Tax Team"]
+        "text": "Tax & Immigration Insight: New York state nexus creates double-taxation risk. AI recommendation: adjust move date to October 1st, 2026 to minimize tax exposure by \u00a38,200. L-1 eligible, 4\u20136 weeks.",
+        "choices": [
+          "Accept October 1st",
+          "Keep July 15th",
+          "Consult Tax Team"
+        ]
       }
     },
     {
@@ -155,7 +202,9 @@
         "action": "accept_october_date",
         "trigger": "button",
         "personaId": "jason",
-        "choices": ["Accept October 1st"]
+        "choices": [
+          "Accept October 1st"
+        ]
       }
     },
     {
@@ -166,13 +215,30 @@
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "Move date updated to October 1st, 2026. I've recalculated the budget and notified Julia of the timing. Proceeding to vendor coordination.",
-        "choices": ["Notify Moving Co"]
+        "choices": [
+          "Notify Moving Co"
+        ]
+      }
+    },
+    {
+      "id": "step-15",
+      "type": "user_action",
+      "content": {
+        "action": "notify_moving_company",
+        "trigger": "button",
+        "personaId": "jason",
+        "choices": [
+          "Notify Moving Co"
+        ]
       }
     },
     {
       "id": "step-16",
       "type": "bot_typing",
-      "content": { "duration": 1, "statusText": "Contacting Global Movers via API..." }
+      "content": {
+        "duration": 1,
+        "statusText": "Contacting Global Movers via API..."
+      }
     },
     {
       "id": "step-17",
@@ -182,7 +248,10 @@
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "Global Movers has been notified. They've scheduled a virtual home survey for Julia on Thursday, March 6th at 2pm GMT. Should I add this to Julia's calendar and invite her manager Sarah Chen?",
-        "choices": ["Yes, add to calendars", "Change time"]
+        "choices": [
+          "Yes, add to calendars",
+          "Change time"
+        ]
       }
     },
     {
@@ -192,7 +261,9 @@
         "action": "add_to_calendars",
         "trigger": "button",
         "personaId": "jason",
-        "choices": ["Yes, add to calendars"]
+        "choices": [
+          "Yes, add to calendars"
+        ]
       }
     },
     {
@@ -203,19 +274,25 @@
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "Done! Calendar invites sent to Julia and Sarah. Global Movers will email Julia the Zoom link within 24 hours. \n\nChecklist: step 5 completed, step 6.",
-        "choices": ["Generate Housing Quote"]
+        "choices": [
+          "Generate Housing Quote"
+        ]
       }
     },
     {
       "id": "step-20",
       "type": "surface",
-      "context": { "surface": "dm", "with": "Slackbot" }
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot",
+        "personaId": "julia"
+      }
     },
     {
       "id": "step-21",
       "type": "app_message",
       "content": {
-        "text": "*Calendar invite added*\n\nJulia Anderson's relocation home survey:\n• When: Thursday, March 6th at 2pm GMT\n• You're invited as her manager\n\nYou'll receive the calendar invite shortly.",
+        "text": "*Calendar invite added*\n\nJulia Anderson's relocation home survey:\n\u2022 When: Thursday, March 6th at 2pm GMT\n\u2022 You're invited as her manager\n\nYou'll receive the calendar invite shortly.",
         "personaId": "slackbot",
         "templateId": "plain_text"
       }
@@ -223,7 +300,10 @@
     {
       "id": "step-22",
       "type": "surface",
-      "context": { "surface": "channel", "channel": "#hr-relocation-leads" }
+      "context": {
+        "surface": "channel",
+        "channel": "#hr-relocation-leads"
+      }
     },
     {
       "id": "step-23",
@@ -233,19 +313,25 @@
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
         "text": "I've opened Immigration Case #VISA-NY-882 with our external law firm (Fragomen). I've automatically uploaded Julia's passport copy and employment records from Workday. Next action: Julia must complete Form DS-160. Should I send her the link with instructions?",
-        "choices": ["Send instructions to Julia", "Wait for lawyer review"]
+        "choices": [
+          "Send instructions to Julia",
+          "Wait for lawyer review"
+        ]
       }
     },
     {
       "id": "step-25",
       "type": "surface",
-      "context": { "surface": "dm", "with": "Slackbot" }
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
     },
     {
       "id": "step-26",
       "type": "app_message",
       "content": {
-        "text": "*Next Step: L-1 Visa Application*\n\n• Complete Form DS-160\n• Upload a new passport photo if yours expires before Feb 2027\n• Timeline: 4–6 weeks\n• Target move date: October 1st, 2026",
+        "text": "*Next Step: L-1 Visa Application*\n\n\u2022 Complete Form DS-160\n\u2022 Upload a new passport photo if yours expires before Feb 2027\n\u2022 Timeline: 4\u20136 weeks\n\u2022 Target move date: October 1st, 2026",
         "personaId": "slackbot",
         "templateId": "plain_text"
       }
@@ -257,13 +343,18 @@
         "action": "acknowledge",
         "trigger": "button",
         "personaId": "julia",
-        "choices": ["👍"]
+        "choices": [
+          "\ud83d\udc4d"
+        ]
       }
     },
     {
       "id": "step-28",
       "type": "surface",
-      "context": { "surface": "channel", "channel": "#hr-relocation-leads" }
+      "context": {
+        "surface": "channel",
+        "channel": "#hr-relocation-leads"
+      }
     },
     {
       "id": "step-29",
@@ -272,19 +363,27 @@
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Julia has acknowledged the visa instructions. Moving forward with Steps 6–8...\n\n*Progress update*\n• Steps 6–8 — completed (temporary housing, COLA, lump sum)\n\nJason, I've drafted Julia's full relocation package. Ready for your review and approval.\n\nChoose an action below to continue.",
-        "choices": ["Review Offer Package"]
+        "text": "Julia has acknowledged the visa instructions. Moving forward with Steps 6\u20138...\n\n*Progress update*\n\u2022 Steps 6\u20138 \u2014 completed (temporary housing, COLA, lump sum)\n\nJason, I've drafted Julia's full relocation package. Ready for your review and approval.\n\nChoose an action below to continue.",
+        "choices": [
+          "Review Offer Package"
+        ]
       }
     },
     {
       "id": "step-31",
       "type": "modal_open",
-      "content": { "view": "relocation-offer-review" }
+      "content": {
+        "view": "relocation-offer-review"
+      }
     },
     {
       "id": "step-32",
       "type": "modal_submit",
-      "content": { "values": { "action": "approve_send_to_julia" } }
+      "content": {
+        "values": {
+          "action": "approve_send_to_julia"
+        }
+      }
     },
     {
       "id": "step-33",
@@ -299,16 +398,22 @@
     {
       "id": "step-34",
       "type": "surface",
-      "context": { "surface": "dm", "with": "Slackbot" }
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
     },
     {
       "id": "step-35",
       "type": "app_message",
       "content": {
-        "text": "*Your New York Relocation Offer is Ready*\n\n• Role: Senior Manager, Product Marketing\n• Start Date: October 1st, 2026\n• Base salary: $145,000\n• Relocation bonus: $10,000\n• Full moving & visa support\n\nView Full Offer Letter · New York Office Guide.",
+        "text": "*Your New York Relocation Offer is Ready*\n\n\u2022 Role: Senior Manager, Product Marketing\n\u2022 Start Date: October 1st, 2026\n\u2022 Base salary: $145,000\n\u2022 Relocation bonus: $10,000\n\u2022 Full moving & visa support\n\nView Full Offer Letter \u00b7 New York Office Guide.",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "choices": ["I Accept This Offer", "I Have Questions"]
+        "choices": [
+          "I Accept This Offer",
+          "I Have Questions"
+        ]
       }
     },
     {
@@ -318,14 +423,16 @@
         "action": "accept_offer",
         "trigger": "button",
         "personaId": "julia",
-        "choices": ["I Accept This Offer"]
+        "choices": [
+          "I Accept This Offer"
+        ]
       }
     },
     {
       "id": "step-37",
       "type": "app_message",
       "content": {
-        "text": "Congratulations, Julia!\n\n• Your acceptance has been recorded\n• Jason and your new team in New York have been notified\n• I'll keep you updated on visa progress and moving timeline\n\nWelcome to the next chapter!",
+        "text": "Congratulations, Julia!\n\n\u2022 Your acceptance has been recorded\n\u2022 Jason and your new team in New York have been notified\n\u2022 I'll keep you updated on visa progress and moving timeline\n\nWelcome to the next chapter!",
         "personaId": "slackbot",
         "templateId": "plain_text"
       }
@@ -333,7 +440,10 @@
     {
       "id": "step-38",
       "type": "surface",
-      "context": { "surface": "channel", "channel": "#hr-relocation-leads" }
+      "context": {
+        "surface": "channel",
+        "channel": "#hr-relocation-leads"
+      }
     },
     {
       "id": "step-39",
@@ -352,8 +462,11 @@
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Knowledge Nudge: 5th London → New York relocation this month with L-1. Visa processing times have increased from 3 weeks to 4–6 weeks. Should I update the knowledge article 'UK to US Visa Processing Times (2026)' to reflect this trend?",
-        "choices": ["Yes, Update Article", "Dismiss"]
+        "text": "Knowledge Nudge: 5th London \u2192 New York relocation this month with L-1. Visa processing times have increased from 3 weeks to 4\u20136 weeks. Should I update the knowledge article 'UK to US Visa Processing Times (2026)' to reflect this trend?",
+        "choices": [
+          "Yes, Update Article",
+          "Dismiss"
+        ]
       }
     },
     {
@@ -363,7 +476,9 @@
         "action": "update_article",
         "trigger": "button",
         "personaId": "jason",
-        "choices": ["Yes, Update Article"]
+        "choices": [
+          "Yes, Update Article"
+        ]
       }
     },
     {
@@ -383,8 +498,12 @@
         "actor": "app",
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "*Relocation Trend Alert*\n\nLondon → New York requests up 15% this month vs January. Driver: NYC product team expansion.\n\nRecommendation: consider a \"Fast Track LHR-JFK\" template.\n\nChoose an action below to continue.",
-        "choices": ["Create Template", "View Full Report", "Dismiss"]
+        "text": "*Relocation Trend Alert*\n\nLondon \u2192 New York requests up 15% this month vs January. Driver: NYC product team expansion.\n\nRecommendation: consider a \"Fast Track LHR-JFK\" template.\n\nChoose an action below to continue.",
+        "choices": [
+          "Create Template",
+          "View Full Report",
+          "Dismiss"
+        ]
       }
     },
     {
@@ -394,7 +513,9 @@
         "action": "dismiss",
         "trigger": "button",
         "personaId": "jason",
-        "choices": ["Dismiss"]
+        "choices": [
+          "Dismiss"
+        ]
       }
     }
   ]

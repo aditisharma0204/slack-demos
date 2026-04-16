@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
 import { useSharedDemoMode } from '@/hooks/useSharedDemoMode'
-import type { OAuthModalUsageItem, StoryConfig, StoryStep, PersonaConfig, ViewportView } from '@/types'
+import type { OAuthModalUsageItem, StoryConfig, StoryStep, PersonaConfig, StorySidebarApp, ViewportView } from '@/types'
 import { resolvePersonaAvatarUrl } from '@/utils/personaAvatar'
 import { getViewportForStep, getActiveViewForStep, getSurfaceAtStep } from '@/engine/viewport'
 import { ClickThroughOverlay } from '@/components/demo/ClickThroughOverlay'
@@ -9,9 +9,96 @@ import { DemoPersonaBar } from '@/components/demo/DemoPersonaBar'
 import { DatePickerModal } from '@/components/demo/DatePickerModal'
 import { OAuthPermissionModal } from '@/components/demo/OAuthPermissionModal'
 import { ChatView } from '@/components/chat/ChatView'
+import { MissionControlTowerPanel } from '@/components/demo/MissionControlTowerPanel'
+import homeIcon from '@/assets/icons/home.svg'
+import homeIconFilled from '@/assets/icons/home-1.svg'
+import directMessagesIcon from '@/assets/icons/direct-messages.svg'
+import notificationsIcon from '@/assets/icons/notifications.svg'
+import moreIcon from '@/assets/icons/more.svg'
+import threadsIcon from '@/assets/icons/threads.svg'
+import listViewIcon from '@/assets/icons/list-view.svg'
+import composeIcon from '@/assets/icons/compose.svg'
+import channelIcon from '@/assets/icons/channel.svg'
+import aiAgentsIcon from '@/assets/icons/ai-agents.svg'
+import channelSectionIcon from '@/assets/icons/channel-section.svg'
+import appsIcon from '@/assets/icons/apps.svg'
+import plusIcon from '@/assets/icons/plus.svg'
+import sidebarIcon from '@/assets/icons/sidebar.svg'
+import arrowLeftHeaderIcon from '@/assets/icons/arrow-left.svg'
+import arrowRightHeaderIcon from '@/assets/icons/arrow-right.svg'
+import clockIcon from '@/assets/icons/clock.svg'
+import searchHeaderIcon from '@/assets/icons/search.svg'
+import helpIcon from '@/assets/icons/help.svg'
+import closeHeaderIcon from '@/assets/icons/close.svg'
+import starFilledIcon from '@/assets/icons/star-1.svg'
 
 /** Reserved id for "Full story (step-by-step)" showcase mode in the View as dropdown */
 export const FULL_STORY_PERSONA_ID = 'full'
+/** Slack header heart sprite: 768×128 PNG, 6 frames × 128px source → 20×20 each when scaled (CDN). */
+const SLACKBOT_HEART_SPRITE_URL =
+  'https://a.slack-edge.com/bv1-13-br/slackbot_heart_sprite-0c2245c.png'
+const SLACKBOT_TYPING_MS_PER_CHAR = 10
+const AUTO_ADVANCE_BASE_MS = 1000
+const SLACKBOT_TYPING_BUFFER_MS = 120
+const SLACKBOT_TO_USER_HANDOFF_MS = 1000
+
+function resolveTimelineUserPersonaId(
+  steps: StoryStep[],
+  stepIndex: number,
+  userPersonaIds: Set<string>,
+  userPersonasById: Map<string, { id: string; name: string }>,
+  fallbackPersonaId?: string
+): string | undefined {
+  let lastUserStepIndex = -1
+  let lastUserPersonaId: string | undefined
+  for (let i = stepIndex; i >= 0; i--) {
+    const personaId = (steps[i] as any)?.content?.personaId
+    if (personaId && userPersonaIds.has(personaId)) {
+      lastUserStepIndex = i
+      lastUserPersonaId = personaId
+      break
+    }
+  }
+
+  let lastSurfaceStepIndex = -1
+  let lastSurfaceDmRecipientPersonaId: string | undefined
+  for (let i = stepIndex; i >= 0; i--) {
+    const step = steps[i] as any
+    if (step?.type === 'surface') {
+      lastSurfaceStepIndex = i
+      const ctx = step?.context
+      const explicitSurfacePersonaId = ctx?.personaId
+      if (typeof explicitSurfacePersonaId === 'string' && userPersonaIds.has(explicitSurfacePersonaId)) {
+        return explicitSurfacePersonaId
+      }
+      if (ctx?.surface === 'dm' && typeof ctx?.with === 'string') {
+        const recipientName = ctx.with.trim().toLowerCase()
+        for (const [, persona] of userPersonasById) {
+          if (persona.name.trim().toLowerCase() === recipientName) {
+            lastSurfaceDmRecipientPersonaId = persona.id
+            break
+          }
+        }
+      }
+      break
+    }
+  }
+
+  // After a surface switch, infer the next user actor in that segment so
+  // transition steps (e.g., switch + first app message) show the right "you".
+  if (lastSurfaceStepIndex > lastUserStepIndex) {
+    if (lastSurfaceDmRecipientPersonaId) return lastSurfaceDmRecipientPersonaId
+    for (let i = stepIndex + 1; i < steps.length; i++) {
+      const step = steps[i]
+      if (!step) continue
+      if (step.type === 'surface') break
+      const personaId = (step as any)?.content?.personaId
+      if (personaId && userPersonaIds.has(personaId)) return personaId
+    }
+  }
+
+  return lastUserPersonaId ?? fallbackPersonaId
+}
 
 function parseOauthUsageItems(raw: unknown): OAuthModalUsageItem[] | undefined {
   if (!Array.isArray(raw) || raw.length !== 3) return undefined
@@ -65,11 +152,12 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     setLastSelectedChoice(choice)
     setCurrentStepIndex((i) => {
       const stepIndex0 = i - 1
-      // Advance to the step that defines this choice (so multiple buttons on one message can branch correctly)
+      // Resolve the user_action step for this choice (supports branching by label),
+      // then immediately advance one more step so action clicks feel instant.
       const choiceStepIndex = steps.findIndex(
         (s, idx) => idx > stepIndex0 && s.type === 'user_action' && (s as any).content?.choices?.includes(choice)
       )
-      if (choiceStepIndex >= 0) return Math.min(choiceStepIndex + 1, totalSteps)
+      if (choiceStepIndex >= 0) return Math.min(choiceStepIndex + 2, totalSteps)
       return Math.min(i + 1, totalSteps)
     })
   }, [totalSteps, steps])
@@ -113,10 +201,12 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     stepAfterNext?.type === 'modal_open' &&
     (stepAfterNext as any).content?.view === 'oauth-permission'
   const nextIsUserActionWithChoices = nextStep?.type === 'user_action' && (nextStep as any).content?.choices?.length
+  const nextIsUserMessage = nextStep?.type === 'user_message'
   const nextIsSlackbotReply = nextStep?.type === 'app_message' || nextStep?.type === 'thread_reply'
   const nextIsPersonaChange = nextStep?.type === 'surface'
   const isUserMessageStep = currentStep?.type === 'user_message'
   const isChoiceStep = currentStep?.type === 'user_action' && (currentStep as any).content?.choices?.length
+  const isAwaitExternalStep = currentStep?.type === 'user_action' && Boolean((currentStep as any).content?.awaitExternal)
   const isUserActionOpeningModal = currentStep?.type === 'user_action' && nextStep?.type === 'modal_open' && (nextStep as any).content?.view === 'date-picker'
   const isUserActionOpeningOAuthModal =
     currentStep?.type === 'user_action' &&
@@ -129,13 +219,22 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     isUserActionOpeningOAuthModal ||
     (currentStep?.type === 'modal_open' && (currentStep as any).content?.view === 'oauth-permission')
   const isModalOpenStep = isDatePickerModalView || isOAuthPermissionModalView
+  const currentStepTextLength =
+    currentStep?.type === 'app_message' || currentStep?.type === 'thread_reply'
+      ? ((currentStep as any).content?.text ?? '').length
+      : 0
+  const slackbotReplyDelayMs =
+    Math.max(
+      AUTO_ADVANCE_BASE_MS,
+      currentStepTextLength * SLACKBOT_TYPING_MS_PER_CHAR + SLACKBOT_TYPING_BUFFER_MS
+    ) + (nextIsUserMessage ? SLACKBOT_TO_USER_HANDOFF_MS : 0)
   const autoAdvanceDelayMs =
     nextIsPersonaChange ? null :
-    currentStep?.type === 'bot_typing' ? 1000 :
-    currentStep?.type === 'user_action' && nextIsSlackbotReply && !nextOpensDateModal ? 1000 :
-    currentStep?.type === 'app_message' && !nextOpensDateModal && !nextOpensOAuthModal && !nextIsUserActionWithChoices ? 1000 :
-    currentStep?.type === 'thread_reply' && !nextIsUserActionWithChoices ? 1000 :
-    currentStep?.type === 'surface' ? 1000 :
+    currentStep?.type === 'bot_typing' ? AUTO_ADVANCE_BASE_MS :
+    currentStep?.type === 'user_action' && nextIsSlackbotReply && !nextOpensDateModal && !isAwaitExternalStep ? AUTO_ADVANCE_BASE_MS :
+    currentStep?.type === 'app_message' && !nextOpensDateModal && !nextOpensOAuthModal && !nextIsUserActionWithChoices ? slackbotReplyDelayMs :
+    currentStep?.type === 'thread_reply' && !nextIsUserActionWithChoices ? slackbotReplyDelayMs :
+    currentStep?.type === 'surface' ? AUTO_ADVANCE_BASE_MS :
     currentStep?.type === 'modal_submit' ? 600 :
     null
 
@@ -152,12 +251,59 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
   const surface = getSurfaceAtStep(steps, stepIndex)
   const channelName = surface?.kind === 'channel' ? (surface.channel ?? '#channel') : undefined
   const appPersona = story.personas.find((persona) => persona.type === 'app')
-  const appName = appPersona?.name ?? 'Slackbot'
-  const appAvatarUrl = appPersona?.avatar?.trim() || '/assets/slackbot-icon.png'
+  const railAvatarSrc = useMemo(() => {
+    const userPersonasById = new Map(
+      story.personas.filter((p) => p.type === 'user').map((p) => [p.id, p] as const)
+    )
 
-  const slackbotState = computeChatStateForView(steps, stepIndex, 'slackbot', story.personas, lastSelectedChoice)
-  const channelState = computeChatStateForView(steps, stepIndex, 'channel', story.personas, lastSelectedChoice)
-  const threadState = computeChatStateForView(steps, stepIndex, 'thread', story.personas, lastSelectedChoice)
+    // Persona-specific demos always pin to the selected persona.
+    if (personaConfig?.personaId) {
+      const selectedPersona = userPersonasById.get(personaConfig.personaId)
+      const selectedAvatar = resolvePersonaAvatarUrl(selectedPersona)
+      if (selectedAvatar) return selectedAvatar
+    }
+
+    // In full-story mode, follow the active user persona in the timeline,
+    // including upcoming handoffs right after surface switches.
+    const resolvedPersonaId = resolveTimelineUserPersonaId(
+      steps,
+      stepIndex,
+      new Set(userPersonas.map((p) => p.id)),
+      new Map(userPersonas.map((p) => [p.id, { id: p.id, name: p.name }] as const)),
+      userPersonas[0]?.id
+    )
+    const resolvedPersona = resolvedPersonaId ? userPersonasById.get(resolvedPersonaId) : undefined
+    const resolvedAvatar = resolvePersonaAvatarUrl(resolvedPersona)
+    if (resolvedAvatar) return resolvedAvatar
+
+    // Fallback to first user persona when no timeline actor exists yet.
+    return resolvePersonaAvatarUrl(userPersonas[0]) ?? '/assets/default-avatar.svg'
+  }, [story.personas, personaConfig?.personaId, stepIndex, steps, userPersonas])
+  const activeTimelinePersonaId = useMemo(() => {
+    // Persona-specific demos always treat the selected persona as "you".
+    if (personaConfig?.personaId) return personaConfig.personaId
+
+    const userPersonaIds = new Set(userPersonas.map((p) => p.id))
+    return resolveTimelineUserPersonaId(
+      steps,
+      stepIndex,
+      userPersonaIds,
+      new Map(userPersonas.map((p) => [p.id, { id: p.id, name: p.name }] as const)),
+      userPersonas[0]?.id
+    )
+  }, [personaConfig?.personaId, stepIndex, steps, userPersonas])
+  const isEmployeeAgentStory =
+    story.id === 'ai-platform-readiness-by-pritesh-chavan'
+    || story.id === 'employee-relocation-resolution-by-pritesh-chavan'
+    || story.id === 'regional-payroll-sync-resolution-by-pritesh-chavan'
+  const appName = isEmployeeAgentStory ? 'Employee Agent' : (appPersona?.name ?? 'Slackbot')
+  const appAvatarUrl = isEmployeeAgentStory
+    ? '/assets/hr-service-agent-avatar.png'
+    : (appPersona?.avatar?.trim() || '/assets/slackbot-icon.png')
+
+  const slackbotState = computeChatStateForView(steps, stepIndex, 'slackbot', story.personas, lastSelectedChoice, appName)
+  const channelState = computeChatStateForView(steps, stepIndex, 'channel', story.personas, lastSelectedChoice, appName)
+  const threadState = computeChatStateForView(steps, stepIndex, 'thread', story.personas, lastSelectedChoice, appName)
 
   const activeState =
     activeView === 'slackbot' ? slackbotState
@@ -211,67 +357,53 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
   const singleView = isSingle ? viewport.view : null
   const leftView = !isSingle ? viewport.left : null
   const rightView = !isSingle ? viewport.right : null
+  const missionControlSplit = !isSingle && viewport.mode === 'dual' && viewport.left === 'mission_control'
+  /** Used for channel row highlight in the sidebar (ignore mission_control left pane). */
+  const primarySidebarView: ViewportView = isSingle
+    ? (singleView as ViewportView)
+    : leftView === 'channel' || leftView === 'thread'
+      ? (leftView as ViewportView)
+      : 'slackbot'
+  const agentsRowSelected = !missionControlSplit && isSingle && singleView === 'slackbot'
+  const normalizeChannelName = (name: string) => name.replace(/^#/, '').trim().toLowerCase()
+  const activeChannelLabel = channelName ? channelName.replace(/^#/, '').trim() : undefined
+  const activeChannelKey = activeChannelLabel ? normalizeChannelName(activeChannelLabel) : undefined
+  const slackRailNavItems = [
+    { id: 'home', label: 'Home', iconSrc: homeIcon, activeIconSrc: homeIconFilled, active: true, badge: undefined, dot: true },
+    { id: 'dms', label: 'DMs', iconSrc: directMessagesIcon, active: false, badge: '1', dot: false },
+    { id: 'activity', label: 'Activity', iconSrc: notificationsIcon, active: false, badge: '1', dot: false },
+    { id: 'agents', label: 'Agents', iconSrc: aiAgentsIcon, active: false, badge: undefined, dot: false },
+    { id: 'more', label: 'More', iconSrc: moreIcon, active: false, badge: undefined, dot: false },
+  ]
+  const slackSidebarShortcuts = [
+    { label: 'Unreads', iconSrc: listViewIcon },
+    { label: 'Threads', iconSrc: threadsIcon },
+    { label: 'Drafts', iconSrc: composeIcon },
+  ]
+  const baseSidebarChannels = ['general', 'random']
+  const personaSidebarChannels = (personaConfig?.overrides?.channels ?? []).map((name) => name.replace(/^#/, '').trim())
+  const slackSidebarChannels = Array.from(
+    new Set(
+      [...baseSidebarChannels, ...personaSidebarChannels, ...(activeChannelLabel ? [activeChannelLabel] : [])]
+        .filter(Boolean)
+    )
+  )
+  const slackSidebarDirectMessages = userPersonas.map((persona) => ({
+    name: persona.id === activeTimelinePersonaId ? `${persona.name} (You)` : persona.name,
+    avatarSrc: resolvePersonaAvatarUrl(persona) ?? railAvatarSrc,
+    status: 'online' as const,
+  }))
+  const slackSidebarApps: { id: string; label: string; badge?: string; avatarSrc: string }[] = (
+    story.sidebarApps ?? []
+  ).map((app: StorySidebarApp) => ({
+    id: app.id,
+    label: app.label,
+    badge: undefined,
+    avatarSrc: app.avatarUrl?.trim() || appAvatarUrl,
+  }))
 
   return (
-    <div className="flex flex-col w-full h-screen" style={{ backgroundColor: '#ffffff' }}>
-      <div
-        className="flex-1 relative min-h-0 w-full overflow-hidden flex flex-row gap-2 mt-0 mb-0 p-2"
-        style={{ backgroundColor: 'var(--slack-footer-bg)', border: 'none', width: '100%' }}
-      >
-        {isSingle ? (
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden rounded-2xl" style={{ width: '100%' }}>
-            {singleView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
-            {singleView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
-            {singleView === 'thread' && renderPane('thread', threadState, 'Thread')}
-          </div>
-        ) : (
-          <>
-            <div
-              className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl box-border"
-              style={{ flex: '0 0 60%', border: '1px solid var(--slack-border)' }}
-            >
-              {leftView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
-              {leftView === 'thread' && renderPane('thread', threadState, 'Thread')}
-            </div>
-            <div
-              className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl box-border"
-              style={{ flex: '0 0 40%' }}
-            >
-              {rightView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
-              {rightView === 'thread' && renderPane('thread', threadState, 'Thread')}
-            </div>
-          </>
-        )}
-        {showOverlay && <ClickThroughOverlay onNext={goNext} onBack={goBack} enabled={overlayEnabled} />}
-        {isDatePickerModalView && (
-          <DatePickerModal
-            defaultStart={defaultStart}
-            defaultEnd={defaultEnd}
-            onSubmit={onModalSubmit}
-          />
-        )}
-        {isOAuthPermissionModalView && (
-          <OAuthPermissionModal
-            appName={(oauthModalContent?.oauthAppName as string) || undefined}
-            integrationName={(oauthModalContent?.oauthIntegrationName as string) || undefined}
-            modalTitle={(oauthModalContent?.oauthModalTitle as string) || undefined}
-            accountSectionLabel={(oauthModalContent?.oauthAccountSectionLabel as string) || undefined}
-            userDisplayName={(oauthModalContent?.oauthUserDisplayName as string) || undefined}
-            userEmail={(oauthModalContent?.oauthUserEmail as string) || undefined}
-            workspaceUrl={(oauthModalContent?.oauthWorkspaceUrl as string) || undefined}
-            accountBadge={(oauthModalContent?.oauthAccountBadge as string) || undefined}
-            integrationInitial={(oauthModalContent?.oauthIntegrationInitial as string) || undefined}
-            integrationLogoBg={(oauthModalContent?.oauthIntegrationLogoBg as string) || undefined}
-            integrationLogoUrl={(oauthModalContent?.oauthIntegrationLogoUrl as string) || undefined}
-            usageHeading={(oauthModalContent?.oauthUsageHeading as string) || undefined}
-            usageItems={parseOauthUsageItems(oauthModalContent?.oauthUsageItems)}
-            legalNotice={(oauthModalContent?.oauthLegalNotice as string) || undefined}
-            allowButtonLabel={(oauthModalContent?.oauthAllowButtonLabel as string) || undefined}
-            onAllow={onModalSubmit}
-            onCancel={goBack}
-          />
-        )}
-      </div>
+    <div className="flex flex-col w-full h-screen" style={{ backgroundColor: 'var(--color-gray-900)' }}>
       <DemoPersonaBar
         breadcrumb={
           <>
@@ -314,6 +446,264 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
         onOverlayToggle={setOverlayEnabled}
         showOverlayToggle={showOverlay}
       />
+      <div className="story-slack-chrome flex flex-col flex-1 min-h-0 min-w-0 w-full overflow-hidden rounded-[16px]">
+      {/* Slack Desktop Header Bar — title bar + body stack inside rounded chrome */}
+      <div className="story-slack-desktop-header" role="toolbar" aria-label="Slack navigation toolbar">
+        {/* Left: window controls + sidebar toggle */}
+        <div className="story-slack-desktop-header__left">
+          <div className="story-slack-desktop-header__window-controls" aria-hidden>
+            <span className="story-slack-desktop-header__dot story-slack-desktop-header__dot--close" />
+            <span className="story-slack-desktop-header__dot story-slack-desktop-header__dot--minimize" />
+            <span className="story-slack-desktop-header__dot story-slack-desktop-header__dot--maximize" />
+          </div>
+          <button className="story-slack-desktop-header__nav-btn" type="button" aria-label="Toggle sidebar" tabIndex={-1}>
+            <img src={sidebarIcon} alt="" className="story-slack-desktop-header__icon" />
+          </button>
+        </div>
+        {/* Center: back/forward/history + search + avatar — grouped */}
+        <div className="story-slack-desktop-header__center">
+          <button className="story-slack-desktop-header__nav-btn" type="button" aria-label="Back" tabIndex={-1}>
+            <img src={arrowLeftHeaderIcon} alt="" className="story-slack-desktop-header__icon" />
+          </button>
+          <button className="story-slack-desktop-header__nav-btn" type="button" aria-label="Forward" tabIndex={-1}>
+            <img src={arrowRightHeaderIcon} alt="" className="story-slack-desktop-header__icon" />
+          </button>
+          <button className="story-slack-desktop-header__nav-btn" type="button" aria-label="History" tabIndex={-1}>
+            <img src={clockIcon} alt="" className="story-slack-desktop-header__icon" />
+          </button>
+          <div className="story-slack-desktop-header__search">
+            <img src={searchHeaderIcon} alt="" className="story-slack-desktop-header__search-icon" />
+            <span className="story-slack-desktop-header__search-text">Search Acme Inc</span>
+            <button className="story-slack-desktop-header__search-clear" type="button" aria-label="Clear search" tabIndex={-1}>
+              <img src={closeHeaderIcon} alt="" className="story-slack-desktop-header__search-clear-icon" />
+            </button>
+          </div>
+          <div className="story-slack-desktop-header__slackbot" aria-hidden>
+            <div className="story-slack-desktop-header__slackbot-inner">
+              <img src={SLACKBOT_HEART_SPRITE_URL} alt="" className="story-slack-desktop-header__slackbot-sprite" />
+            </div>
+          </div>
+        </div>
+        {/* Right: Give Feedback + help */}
+        <div className="story-slack-desktop-header__right">
+          <div className="story-slack-desktop-header__feedback" aria-hidden>
+            <img src={starFilledIcon} alt="" className="story-slack-desktop-header__feedback-star" />
+            <span>Give Feedback</span>
+          </div>
+          <button className="story-slack-desktop-header__nav-btn" type="button" aria-label="Help" tabIndex={-1}>
+            <img src={helpIcon} alt="" className="story-slack-desktop-header__icon" />
+          </button>
+        </div>
+      </div>
+        <div
+          className="flex-1 relative min-h-0 w-full overflow-hidden flex flex-row gap-0 mt-0 mb-0 pt-0 pr-2 pb-2 pl-0 min-w-0"
+          style={{ backgroundColor: 'var(--slack-footer-bg)', border: 'none', width: '100%' }}
+        >
+        <div className="p-tab_rail__tab_container__context_target" aria-hidden>
+          <aside className="story-slack-rail" aria-label="Slack workspace rail">
+            <div className="story-slack-rail__workspace-logo" aria-hidden>
+              <img src="/workspace-logo.png" alt="" className="story-slack-rail__workspace-logo-img" />
+            </div>
+            <nav className="story-slack-rail__nav" aria-label="Slack global navigation">
+              {slackRailNavItems.map((item) => (
+                <div
+                  key={item.label}
+                  className={`story-slack-rail__item story-slack-rail__item--${item.id} ${item.active ? 'story-slack-rail__item--active' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={item.label}
+                >
+                  {item.dot && <span className="story-slack-rail__item-dot" aria-hidden />}
+                  <span className="story-slack-rail__item-icon" aria-hidden>
+                    <img src={item.active && item.activeIconSrc ? item.activeIconSrc : item.iconSrc} className={`story-slack-icon-img story-slack-icon-img--${item.id}`} alt="" />
+                  </span>
+                  <span className="story-slack-rail__item-label">{item.label}</span>
+                  {item.badge && <span className="story-slack-rail__item-badge">{item.badge}</span>}
+                </div>
+              ))}
+            </nav>
+            <div className="story-slack-rail__bottom">
+              <div className="story-slack-rail__circle-btn" aria-label="Add workspace" role="button" tabIndex={0}>
+                <img src={plusIcon} className="story-slack-icon-img" alt="" />
+              </div>
+              <div className="story-slack-rail__avatar" aria-label="Current user avatar" role="img">
+                <img src={railAvatarSrc} alt="" className="story-slack-rail__avatar-img" />
+                <span className="story-slack-rail__avatar-status" aria-hidden />
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div className="story-slack-main-shell flex-1 min-w-0 min-h-0 flex flex-row gap-0">
+          <aside className="story-slack-sidebar" aria-label="Slack channel sidebar">
+            <div
+              role="toolbar"
+              aria-orientation="horizontal"
+              aria-label="Actions"
+              className="p-ia4_sidebar_header p-ia4_home_header p-ia4_home_header--with_upgrade p-ia4_home_header--with_divider p-ia4_sidebar_header--withControls p-ia4_sidebar_header--at_scroll_top p-channel_sidebar--visual-updates-m1"
+            >
+              <div className="p-ia4_sidebar_header__title">
+                <div className="p-ia4_sidebar_header__title--inner">
+                  <button className="c-button-unstyled p-ia4_home_header_menu__button" type="button">
+                    Salesforce
+                    <span className="story-slack-sidebar__toolbar-icon story-slack-sidebar__toolbar-icon--caret" aria-hidden>
+                      <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                        <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              <div className="story-slack-sidebar__toolbar-actions" aria-label="Header actions">
+                <button className="story-slack-sidebar__icon-button story-slack-sidebar__icon-button--settings" type="button" aria-label="Preferences" />
+                <button className="story-slack-sidebar__icon-button story-slack-sidebar__icon-button--compose" type="button" aria-label="Compose" />
+              </div>
+            </div>
+            <div className="story-slack-sidebar__body">
+              <div className="story-slack-sidebar__section">
+                {slackSidebarShortcuts.map((item) => (
+                  <div key={item.label} className="story-slack-sidebar__item story-slack-sidebar__item--row">
+                    <span className="story-slack-sidebar__leading-icon" aria-hidden>
+                      <img src={item.iconSrc} className="story-slack-icon-img story-slack-icon-img--sidebar" alt="" />
+                    </span>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+                <div className="story-slack-sidebar__divider" role="separator" aria-hidden />
+              </div>
+              <div className="story-slack-sidebar__section">
+                <div className="story-slack-sidebar__item story-slack-sidebar__item--section-label story-slack-sidebar__item--row">
+                  <span className="story-slack-sidebar__caret" aria-hidden>
+                    <img src={channelSectionIcon} className="story-slack-icon-img story-slack-icon-img--sidebar-caret" alt="" />
+                  </span>
+                  <span>Channels</span>
+                </div>
+                {slackSidebarChannels.map((item) => {
+                  const isSelectedChannel =
+                    (primarySidebarView === 'channel' || primarySidebarView === 'thread') &&
+                    !!activeChannelKey &&
+                    normalizeChannelName(item) === activeChannelKey
+                  return (
+                  <div
+                    key={item}
+                    className={`story-slack-sidebar__item story-slack-sidebar__item--row story-slack-sidebar__item--indented ${isSelectedChannel ? 'story-slack-sidebar__item--selected' : ''}`}
+                  >
+                    <span className="story-slack-sidebar__leading-icon" aria-hidden>
+                      <img src={channelIcon} className="story-slack-icon-img story-slack-icon-img--sidebar" alt="" />
+                    </span>
+                    <span>{item}</span>
+                  </div>
+                )})}
+              </div>
+              <div className="story-slack-sidebar__section">
+                <div className="story-slack-sidebar__item story-slack-sidebar__item--section-label story-slack-sidebar__item--row">
+                  <span className="story-slack-sidebar__caret" aria-hidden>
+                    <img src={directMessagesIcon} className="story-slack-icon-img story-slack-icon-img--sidebar-caret" alt="" />
+                  </span>
+                  <span>Direct messages</span>
+                </div>
+                {slackSidebarDirectMessages.map((item) => (
+                  <div key={item.name} className="story-slack-sidebar__item story-slack-sidebar__item--row story-slack-sidebar__item--indented story-slack-sidebar__item--app">
+                    <img src={item.avatarSrc} alt="" className="story-slack-sidebar__dm-avatar-photo" aria-hidden />
+                    <span>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="story-slack-sidebar__section">
+                <div className="story-slack-sidebar__item story-slack-sidebar__item--section-label story-slack-sidebar__item--row">
+                  <span className="story-slack-sidebar__caret" aria-hidden>
+                    <img src={appsIcon} className="story-slack-icon-img story-slack-icon-img--sidebar-caret" alt="" />
+                  </span>
+                  <span>Apps</span>
+                </div>
+                {slackSidebarApps.map((item) => {
+                  const appRowSelected = missionControlSplit
+                  return (
+                    <div
+                      key={item.id}
+                      className={`story-slack-sidebar__item story-slack-sidebar__item--app story-slack-sidebar__item--row story-slack-sidebar__item--indented ${appRowSelected ? 'story-slack-sidebar__item--selected' : ''}`}
+                    >
+                      <img src={item.avatarSrc} alt="" className="story-slack-sidebar__dm-avatar-image" aria-hidden />
+                      <span>{item.label}</span>
+                      {item.badge ? <span className="story-slack-sidebar__badge">{item.badge}</span> : null}
+                    </div>
+                  )
+                })}
+                <div className="story-slack-sidebar__item story-slack-sidebar__item--section-label story-slack-sidebar__item--row">
+                  <span className="story-slack-sidebar__caret" aria-hidden>
+                    <img src={aiAgentsIcon} className="story-slack-icon-img story-slack-icon-img--sidebar-caret" alt="" />
+                  </span>
+                  <span>Agents</span>
+                </div>
+                <div className={`story-slack-sidebar__item story-slack-sidebar__item--app story-slack-sidebar__item--emphasis story-slack-sidebar__item--row story-slack-sidebar__item--indented ${agentsRowSelected ? 'story-slack-sidebar__item--selected' : ''}`}>
+                  <img src={appAvatarUrl} alt={appName} className="story-slack-sidebar__dm-avatar-image" />
+                  <span>{appName}</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <div className="flex-1 min-w-0 min-h-0 flex flex-row gap-[6px]">
+          {isSingle ? (
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden" style={{ width: '100%' }}>
+              {singleView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
+              {singleView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
+              {singleView === 'thread' && renderPane('thread', threadState, 'Thread')}
+            </div>
+          ) : (
+            <>
+              <div
+                className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl box-border"
+                style={{ flex: '0 0 60%', border: '1px solid var(--slack-border)' }}
+              >
+                {leftView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
+                {leftView === 'thread' && renderPane('thread', threadState, 'Thread')}
+                {leftView === 'mission_control' && (
+                  <div className="flex flex-col min-h-0 min-w-0 h-full overflow-hidden bg-white rounded-2xl">
+                    <MissionControlTowerPanel onInvestigate={() => handleChoiceClick('Stop traffic')} />
+                  </div>
+                )}
+              </div>
+              <div
+                className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl box-border"
+                style={{ flex: '0 0 40%' }}
+              >
+                {rightView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
+                {rightView === 'thread' && renderPane('thread', threadState, 'Thread')}
+              </div>
+            </>
+          )}
+          </div>
+        </div>
+        {showOverlay && <ClickThroughOverlay onNext={goNext} onBack={goBack} enabled={overlayEnabled} />}
+        {isDatePickerModalView && (
+          <DatePickerModal
+            defaultStart={defaultStart}
+            defaultEnd={defaultEnd}
+            onSubmit={onModalSubmit}
+          />
+        )}
+        {isOAuthPermissionModalView && (
+          <OAuthPermissionModal
+            appName={(oauthModalContent?.oauthAppName as string) || undefined}
+            integrationName={(oauthModalContent?.oauthIntegrationName as string) || undefined}
+            modalTitle={(oauthModalContent?.oauthModalTitle as string) || undefined}
+            accountSectionLabel={(oauthModalContent?.oauthAccountSectionLabel as string) || undefined}
+            userDisplayName={(oauthModalContent?.oauthUserDisplayName as string) || undefined}
+            userEmail={(oauthModalContent?.oauthUserEmail as string) || undefined}
+            workspaceUrl={(oauthModalContent?.oauthWorkspaceUrl as string) || undefined}
+            accountBadge={(oauthModalContent?.oauthAccountBadge as string) || undefined}
+            integrationInitial={(oauthModalContent?.oauthIntegrationInitial as string) || undefined}
+            integrationLogoBg={(oauthModalContent?.oauthIntegrationLogoBg as string) || undefined}
+            integrationLogoUrl={(oauthModalContent?.oauthIntegrationLogoUrl as string) || undefined}
+            usageHeading={(oauthModalContent?.oauthUsageHeading as string) || undefined}
+            usageItems={parseOauthUsageItems(oauthModalContent?.oauthUsageItems)}
+            legalNotice={(oauthModalContent?.oauthLegalNotice as string) || undefined}
+            allowButtonLabel={(oauthModalContent?.oauthAllowButtonLabel as string) || undefined}
+            onAllow={onModalSubmit}
+            onCancel={goBack}
+          />
+        )}
+      </div>
+      </div>
     </div>
   )
 }
@@ -342,7 +732,8 @@ function computeChatStateForView(
   upToIndex: number,
   view: ChatViewType,
   personas: StoryConfig['personas'],
-  lastSelectedChoice: string | null
+  lastSelectedChoice: string | null,
+  appDisplayName: string
 ): {
   chatMessages: ChatMessagePayload[]
   pendingUserMessage: { text: string; author: string; avatarUrl?: string } | undefined
@@ -354,13 +745,15 @@ function computeChatStateForView(
   let showThinking = false
   let thinkingStatusText: string | undefined
   const appPersona = personas.find((p) => p.type === 'app')
-  const slackbotName = appPersona?.name ?? 'Slackbot'
+  const slackbotName = appPersona?.name ?? appDisplayName
 
   let segment: 'dm' | 'channel' = 'dm'
   /** Last app_message in channel segment; used to attach choices for user_action in thread view */
   let lastChannelAppMessage: ChatMessagePayload | null = null
   /** Track if we've entered each segment before; used to show "New" divider only on switch-back */
   const segmentEnteredBefore: { dm: boolean; channel: boolean } = { dm: false, channel: false }
+  /** After a switch-back divider, suppress an immediate duplicate replay of the last message. */
+  let dedupeFirstMessageAfterSwitchBack = false
 
   for (let i = 0; i <= upToIndex; i++) {
     const step = steps[i]
@@ -369,14 +762,23 @@ function computeChatStateForView(
     if (step.type === 'surface') {
       const ctx = (step as any).context
       const newSegment: 'dm' | 'channel' = ctx?.surface === 'channel' ? 'channel' : 'dm'
+      const shouldResetConversation = Boolean(ctx?.resetConversation)
       const isSwitchBack = segmentEnteredBefore[newSegment]
       const newDividerPayload: ChatMessagePayload = { id: `new-divider-${step.id}`, author: '', isNewDivider: true }
+      if (shouldResetConversation) {
+        chatMessages.length = 0
+        if (newSegment === 'channel') {
+          lastChannelAppMessage = null
+        }
+      }
       if (isSwitchBack) {
         if (view === 'slackbot' && newSegment === 'dm') {
           chatMessages.push(newDividerPayload)
+          dedupeFirstMessageAfterSwitchBack = true
         }
         if ((view === 'channel' || view === 'thread') && newSegment === 'channel') {
           chatMessages.push(newDividerPayload)
+          dedupeFirstMessageAfterSwitchBack = true
         }
       }
       segmentEnteredBefore[newSegment] = true
@@ -412,6 +814,16 @@ function computeChatStateForView(
     if (step.type === 'app_message') {
       const msg = buildAppMessagePayload(step as any, steps, i, personas, lastSelectedChoice, upToIndex)
       lastChannelAppMessage = msg
+      if (dedupeFirstMessageAfterSwitchBack) {
+        const lastNonDivider = [...chatMessages].reverse().find((m) => !m.isNewDivider)
+        const isImmediateDuplicate =
+          !!lastNonDivider &&
+          lastNonDivider.author === msg.author &&
+          (lastNonDivider.text ?? '') === (msg.text ?? '') &&
+          (lastNonDivider.templateId ?? '') === (msg.templateId ?? '')
+        dedupeFirstMessageAfterSwitchBack = false
+        if (isImmediateDuplicate) continue
+      }
       // Keep full channel history in both channel and thread views so earlier messages stay visible
       chatMessages.push(msg)
       continue
@@ -419,6 +831,16 @@ function computeChatStateForView(
 
     if (step.type === 'thread_reply') {
       const msg = buildThreadReplyPayload(step as any, steps, i, personas, lastSelectedChoice)
+      if (dedupeFirstMessageAfterSwitchBack) {
+        const lastNonDivider = [...chatMessages].reverse().find((m) => !m.isNewDivider)
+        const isImmediateDuplicate =
+          !!lastNonDivider &&
+          lastNonDivider.author === msg.author &&
+          (lastNonDivider.text ?? '') === (msg.text ?? '') &&
+          (lastNonDivider.templateId ?? '') === (msg.templateId ?? '')
+        dedupeFirstMessageAfterSwitchBack = false
+        if (isImmediateDuplicate) continue
+      }
       if (view === 'channel' || view === 'thread') {
         chatMessages.push(msg)
       }
@@ -427,6 +849,7 @@ function computeChatStateForView(
 
     if (step.type === 'bot_typing') {
       if (view !== 'slackbot') continue
+      if (dedupeFirstMessageAfterSwitchBack) dedupeFirstMessageAfterSwitchBack = false
       if (i === upToIndex) {
         showThinking = true
         const content = (step as any).content
@@ -440,7 +863,7 @@ function computeChatStateForView(
         if (step.type === 'user_action') {
           const content = (step as any).content
           const choices = content?.choices
-          if (choices?.length && chatMessages.length > 0) {
+          if (choices?.length && chatMessages.length > 0 && !content?.awaitExternal) {
             const last = chatMessages[chatMessages.length - 1]
             if (last.isApp && !last.choices) last.choices = choices
           }

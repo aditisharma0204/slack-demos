@@ -1,10 +1,18 @@
 {
   "personaId": "sarah",
   "title": "Sarah Chen",
-  "description": "Manager who asks about leave in-channel and approves Alex's paternity request in Slackbot",
-  "stepIds": ["step-1", "step-2", "step-3", "step-4", "step-11", "step-12", "step-13", "step-14"],
+  "description": "Manager who asks about leave in #team-leave and approves Alex's paternity request in Slackbot",
+  "stepIds": [
+    "step-1",
+    "step-2",
+    "step-3",
+    "step-11",
+    "step-12",
+    "step-13",
+    "step-14"
+  ],
   "overrides": {
-    "introInstructions": "You're viewing as Sarah. See the team-leave thread, then jump to Slackbot to approve Alex's paternity leave.",
+    "introInstructions": "You're viewing as Sarah. Review Alex's paternity leave dates in Slackbot and approve the request.",
     "channels": ["#general", "#team-leave"],
     "dms": ["Slackbot", "Alex Kim"]
   }

@@ -47,6 +47,17 @@ export function getViewportForStep(steps: StoryStep[], stepIndex: number): Viewp
 
 /** Which view is "active" at this step (where the conversation is happening; only that pane's composer can advance). */
 export function getActiveViewForStep(steps: StoryStep[], stepIndex: number): ViewportView {
+  const step = steps[stepIndex]
+  const rawVp = step && 'viewport' in step ? (step as { viewport?: unknown }).viewport : undefined
+  const explicitVp =
+    rawVp && typeof rawVp === 'object' && rawVp !== null && 'mode' in rawVp ? (rawVp as Viewport) : undefined
+  if (
+    explicitVp?.mode === 'dual' &&
+    explicitVp.right === 'slackbot' &&
+    explicitVp.left === 'mission_control'
+  ) {
+    return 'slackbot'
+  }
   const surface = getSurfaceAtStep(steps, stepIndex)
   if (!surface) return 'slackbot'
   if (surface.kind === 'dm') return 'slackbot'

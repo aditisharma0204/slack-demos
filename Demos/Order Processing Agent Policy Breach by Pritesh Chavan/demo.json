@@ -1,0 +1,270 @@
+{
+  "id": "order-processing-agent-policy-breach-by-pritesh-chavan",
+  "title": "Order Processing Agent Policy Breach",
+  "createdBy": "Pritesh Chavan",
+  "workspaceName": "Acme Inc",
+  "sidebarApps": [
+    {
+      "id": "agentic-mission-control",
+      "label": "Agentic Mission Control",
+      "avatarUrl": "/assets/mc-agent-icon.png"
+    }
+  ],
+  "personas": [
+    {
+      "id": "jordan",
+      "name": "Jordan Rivera",
+      "designation": "IT Director",
+      "role": "Owns operational risk for production agents; runs governance remediation from Slack",
+      "type": "user"
+    },
+    {
+      "id": "slackbot",
+      "name": "MC Agent",
+      "avatar": "/assets/slackbot-icon.png",
+      "designation": "Slack app",
+      "role": "Surfaces governance signals, explains policy context, guides remediation, and posts fleet status",
+      "type": "app"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "surface",
+      "context": {
+        "surface": "dm",
+        "with": "MC Agent",
+        "personaId": "jordan"
+      }
+    },
+    {
+      "id": "step-2",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Hi Jordan—I've noticed a *CRITICAL* governance signal on your production fleet.\n\n*Order Processing Agent — policy breach*\n• *Symptom:* Answering off-topic questions at *3 warnings/min*\n• *Policy:* Domain must stay within assignment (ref: *POL-AGT-DOMAIN-REM-03*)\n\n*Operational impact*\n• *Users exposed / hr:* ~420\n• *Apps affected:* Order Processing, Checkout Assist (read-only)\n• *Revenue at risk (est.):* $180k / hr until contained\n• *Cluster:* *USW-7*\n\nYou can open *Mission Control* here in Slack for blast radius, traffic, and workflow—or stay in this thread and I'll walk you through remediation.\n\nChoose an action below to continue.",
+        "choices": ["Open Mission Control"]
+      }
+    },
+    {
+      "id": "step-3",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "open_mission_control",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Open Mission Control"]
+      }
+    },
+    {
+      "id": "step-4",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "mc_stop_traffic",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Stop traffic"],
+        "awaitExternal": true
+      }
+    },
+    {
+      "id": "step-8",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Quick heads-up before I flip the switch—this one's destructive in the sense that *live customer traffic stops* for the Order Processing Agent.\n\n*What happens*\n• *0%* traffic to the agent on *USW-7*\n• Requests *reroute* to the *fallback* policy-safe responder\n• Mission Control keeps an immutable audit entry tied to your Slack actor\n\nYou can confirm below and I'll execute immediately.\n\nChoose an action below to continue.",
+        "choices": ["Confirm stop traffic"]
+      }
+    },
+    {
+      "id": "step-9",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "confirm_stop_traffic",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Confirm stop traffic"],
+        "suppressAcknowledgment": true
+      }
+    },
+    {
+      "id": "step-10",
+      "type": "bot_typing",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "duration": 1,
+        "statusText": "Stopping USW-7 traffic and rerouting to fallback…"
+      }
+    },
+    {
+      "id": "step-11",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "I've handled the containment step.\n\n*Traffic status*\n• Order Processing Agent: *0%* production traffic\n• *Fallback cluster:* active for impacted workflows\n• *Risk posture:* materially reduced while we retrain\n\nNext, I'll capture the worst offenders as eval cases and kick off retrain with production feedback.\n\nChoose an action below to continue.",
+        "choices": ["Capture & retrain"]
+      }
+    },
+    {
+      "id": "step-12",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "capture_and_retrain",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Capture & retrain"]
+      }
+    },
+    {
+      "id": "step-13",
+      "type": "bot_typing",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "duration": 1,
+        "statusText": "Saving flagged sessions as eval cases and starting retrain…"
+      }
+    },
+    {
+      "id": "step-14",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Jordan—progress update from the remediation pipeline.\n\n*Capture*\n• Saved *3* flagged production sessions as *gold eval cases*\n• Linked each case to the policy slice that drifted (off-topic routing)\n\n*Retrain*\n• Training window: last *72h* of production feedback + your updated suite\n• Objective: restore *in-assignment* behavior without overfitting to noise"
+      }
+    },
+    {
+      "id": "step-15",
+      "type": "bot_typing",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "duration": 1,
+        "statusText": "Finishing retrain run and running the quality gate…"
+      }
+    },
+    {
+      "id": "step-16",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Retrain complete—and the eval gate looks strong.\n\n*Quality gate*\n• Eval pass rate: *98.4%* (up from *91.2%*)\n• Policy violations on the held-out test slice: *0*\n• Regression suite: *green* (checkout + order-status intents)\n\nYou can promote this build to production when you're comfortable.\n\nChoose an action below to continue.",
+        "choices": ["Deploy to production"]
+      }
+    },
+    {
+      "id": "step-17",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "deploy_to_production",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Deploy to production"]
+      }
+    },
+    {
+      "id": "step-18",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Before I ship to US production, one last human-in-the-loop check.\n\n*Deploy scope*\n• Target: *Order Processing Agent* — *US production*\n• Canary: *off* (you already contained traffic—this is a controlled bring-up)\n• Rollback: one-click revert to last known-good in Mission Control\n\nConfirm and I'll start the deploy pipeline.\n\nChoose an action below to continue.",
+        "choices": ["Confirm deploy to production"]
+      }
+    },
+    {
+      "id": "step-19",
+      "type": "user_action",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "action": "confirm_deploy_production",
+        "trigger": "button",
+        "personaId": "jordan",
+        "choices": ["Confirm deploy to production"],
+        "suppressAcknowledgment": true
+      }
+    },
+    {
+      "id": "step-20",
+      "type": "bot_typing",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "duration": 1,
+        "statusText": "Promoting revision to US production…"
+      }
+    },
+    {
+      "id": "step-21",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "*Deploying…*\n\n• Pipeline: *US prod promotion*\n• Health probes: warming\n• Audit: revision metadata captured in Mission Control"
+      }
+    },
+    {
+      "id": "step-22",
+      "type": "bot_typing",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "duration": 1,
+        "statusText": "Waiting on prod readiness checks…"
+      }
+    },
+    {
+      "id": "step-23",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "*Live on US production*\n\n• Revision: *`rev-us-prod-8f2c91a`*\n• Region: *US*\n• Agent: *Order Processing Agent*\n\nI've restored confidence signals to green for the promotion path you just approved."
+      }
+    },
+    {
+      "id": "step-24",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Closure check—I've handled the tail of the incident loop.\n\n*Production posture*\n• Traffic to the retrained agent: *100%* restored on the primary path\n• Fallback: *standby* (not receiving customer load)\n• Monitoring: *active* for new policy violations and drift warnings\n\nNice work staying decisive—this DM thread stays your quick-reference audit trail."
+      }
+    },
+    {
+      "id": "step-25",
+      "type": "surface",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "context": {
+        "surface": "dm",
+        "with": "MC Agent",
+        "personaId": "jordan",
+        "resetConversation": true
+      }
+    },
+    {
+      "id": "step-26",
+      "type": "app_message",
+      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "*App Home — Fleet digest*\n\n*Fleet overview*\n• *Open incidents:* *0* (critical)\n• *Agents in violation:* *0*\n• *Clusters reporting yellow:* *0*\n\n*Regional posture*\n• *USW-7:* healthy — Order Processing Agent on *`rev-us-prod-8f2c91a`*\n• *Fallback pool:* idle, ready if needed\n\n*Rhythm of Business*\n• Next payroll-adjacent agent audit window: *48h* (FYI—no action needed right now)\n\nIf anything spikes again, I'll speak up early—same playbook, right here."
+      }
+    }
+  ]
+}

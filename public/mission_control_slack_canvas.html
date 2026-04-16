@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Mission Control — Slack Canvas (design snapshot)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sk-bg: #ffffff;
+      --sk-bg-subtle: #f8f8f8;
+      --sk-border: #e8e8e8;
+      --sk-text: #1d1c1d;
+      --sk-text-secondary: #616061;
+      --sk-text-tertiary: #868686;
+      --sk-blue: #1264a3;
+      --sk-green: #007a5a;
+      --sk-pink: #e01e5a;
+      --sk-amber-title: #5c3b00;
+      --sk-amber-desc: #7a4f00;
+      --sk-amber-bg: #fef9e8;
+      --sk-amber-border: #f0d9a8;
+      --sk-purple-bar: #350d36;
+      --sk-radius: 8px;
+      --sk-font: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sk-font);
+      background: #1a1d21;
+      color: var(--sk-text);
+      min-height: 100vh;
+      padding: 24px 16px 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Slack client chrome around the canvas */
+    .slack-canvas-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .slack-canvas-client-bar {
+      background: var(--sk-purple-bar);
+      color: rgba(255, 255, 255, 0.92);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .slack-canvas-client-bar svg {
+      width: 18px;
+      height: 18px;
+      opacity: 0.9;
+    }
+
+    .slack-canvas-client-bar span.sep {
+      opacity: 0.45;
+      font-weight: 400;
+    }
+
+    .slack-canvas-doc-wrap {
+      background: var(--sk-bg);
+    }
+
+    .slack-canvas-doc-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--sk-border);
+      background: var(--sk-bg);
+    }
+
+    .slack-canvas-doc-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--sk-text-secondary);
+    }
+
+    .slack-canvas-pill {
+      background: var(--sk-bg-subtle);
+      border: 1px solid var(--sk-border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-weight: 600;
+      color: var(--sk-text-secondary);
+    }
+
+    .slack-canvas-doc-inner {
+      padding: 0 0 28px;
+    }
+
+    .slack-canvas-doc-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--sk-text);
+      padding: 20px 24px 8px;
+      line-height: 1.2;
+    }
+
+    .slack-canvas-doc-meta {
+      font-size: 12px;
+      color: var(--sk-text-tertiary);
+      padding: 0 24px 16px;
+      border-bottom: 1px solid var(--sk-border);
+    }
+
+    /* —— Mirrors app: GlobalAlertSummaryStrip —— */
+    .global-alert-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background-color: var(--sk-amber-bg);
+      border-bottom: 1px solid var(--sk-amber-border);
+      padding: 10px 24px;
+    }
+
+    .global-alert-summary-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .global-alert-ping-wrap {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .global-alert-ping {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #ecb22e;
+      opacity: 0.75;
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes ping {
+      75%, 100% { transform: scale(2); opacity: 0; }
+    }
+
+    .global-alert-dot {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #ecb22e;
+      border: 2px solid #fef3c7;
+    }
+
+    .global-alert-summary-text {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .global-alert-summary-count {
+      font-weight: 700;
+      color: var(--sk-amber-title);
+    }
+
+    .global-alert-summary-meta {
+      color: var(--sk-amber-desc);
+      font-weight: 500;
+    }
+
+    .global-alert-summary-meta--critical {
+      color: var(--sk-pink);
+      font-weight: 700;
+    }
+
+    .global-alert-summary-hint {
+      color: var(--sk-amber-desc);
+      font-weight: 500;
+      max-width: min(420px, 50vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .global-alert-summary-actions {
+      flex-shrink: 0;
+    }
+
+    .global-alert-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--sk-blue);
+      color: #fff;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .global-alert-cta:hover {
+      background: #0b4c8c;
+    }
+
+    /* —— global-page-header —— */
+    .global-page-header {
+      background: var(--sk-bg);
+      padding: 20px 24px 18px;
+      border-bottom: 1px solid var(--sk-border);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .global-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--sk-text-secondary);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .global-crumb-link {
+      color: var(--sk-blue);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .global-crumb-link:hover {
+      text-decoration: underline;
+    }
+
+    .global-crumb-sep {
+      color: var(--sk-border);
+    }
+
+    .global-crumb-current {
+      font-weight: 600;
+      color: var(--sk-text);
+    }
+
+    .global-page-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--sk-text);
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    /* —— Map + metrics stack (canvas-friendly single column) —— */
+    .canvas-map-metrics-stack {
+      background: var(--sk-bg-subtle);
+      padding: 20px 24px 24px;
+    }
+
+    .global-map-shell {
+      background: var(--sk-bg);
+      border-radius: 12px;
+      border: 1px solid var(--sk-border);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .global-map-stage {
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .global-map-stage--continent {
+      background-image: radial-gradient(#d9d9d9 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .map-stage-visual {
+      width: 100%;
+      max-width: 720px;
+      aspect-ratio: 12 / 7;
+    }
+
+    .map-stage-caption {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--sk-text-secondary);
+      text-align: center;
+      max-width: 640px;
+      line-height: 1.45;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* —— Telemetry panel (horizontal metrics for canvas) —— */
+    .telemetry-aside-body.telemetry-tabpanel {
+      background: var(--sk-bg);
+      border: 1px solid var(--sk-border);
+      border-radius: 12px;
+      padding: 16px 18px 18px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .gv-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #c4c4c4 transparent;
+    }
+
+    .telemetry-metrics-scope {
+      margin: 0 0 14px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--sk-text-tertiary);
+    }
+
+    .canvas-metrics-horizontal {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .telemetry-card {
+      flex: 1 1 140px;
+      min-width: 130px;
+      background: var(--sk-bg-subtle);
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--sk-border);
+    }
+
+    .telemetry-label-row {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--sk-text-secondary);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .telemetry-trend-up {
+      color: var(--sk-green);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .telemetry-value-xl {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--sk-text);
+      letter-spacing: -0.02em;
+    }
+
+    .telemetry-value-unit {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sk-text-secondary);
+    }
+
+    .telemetry-value-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .telemetry-value-unit--sub {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sk-text-tertiary);
+    }
+
+    .telemetry-sparkline-wrap {
+      margin-top: 8px;
+      height: 36px;
+    }
+
+    .telemetry-sparkline-wrap svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .telemetry-split-inner {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .telemetry-split-inner > div:first-child {
+      flex: 1;
+    }
+
+    .telemetry-hr {
+      width: 1px;
+      background: var(--sk-border);
+      flex-shrink: 0;
+    }
+
+    .telemetry-stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sk-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .telemetry-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--sk-text);
+    }
+
+    .telemetry-stat-context {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sk-text-tertiary);
+    }
+
+    .telemetry-bars {
+      display: flex;
+      gap: 3px;
+      margin-top: 8px;
+      height: 28px;
+      align-items: flex-end;
+    }
+
+    .telemetry-bar {
+      flex: 1;
+      background: linear-gradient(to top, rgba(18, 100, 163, 0.15), var(--sk-blue));
+      border-radius: 2px 2px 0 0;
+      opacity: 0.85;
+    }
+
+    .telemetry-bar:nth-child(1) { height: 35%; }
+    .telemetry-bar:nth-child(2) { height: 55%; }
+    .telemetry-bar:nth-child(3) { height: 45%; }
+    .telemetry-bar:nth-child(4) { height: 70%; }
+    .telemetry-bar:nth-child(5) { height: 60%; }
+    .telemetry-bar:nth-child(6) { height: 85%; }
+    .telemetry-bar:nth-child(7) { height: 100%; }
+
+    .canvas-footer-note {
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: var(--sk-bg-subtle);
+      border-radius: var(--sk-radius);
+      font-size: 12px;
+      color: var(--sk-text-secondary);
+      border: 1px dashed var(--sk-border);
+    }
+
+    .canvas-footer-note a {
+      color: var(--sk-blue);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="slack-canvas-shell">
+  <div class="slack-canvas-client-bar" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 4.5h15v15h-15z" opacity=".25"/><path d="M8 8h8v8H8z"/></svg>
+    TrustOps
+    <span class="sep">/</span>
+    Canvas
+    <span class="sep">/</span>
+    <span style="opacity:1">Agentic Mission Control</span>
+  </div>
+
+  <div class="slack-canvas-doc-wrap">
+    <div class="slack-canvas-doc-toolbar">
+      <div class="slack-canvas-doc-toolbar-left">
+        <span class="slack-canvas-pill">Read-only</span>
+        <span>Snapshot for leadership review</span>
+      </div>
+      <div class="slack-canvas-doc-toolbar-left">
+        <span style="font-weight:600;color:var(--sk-text)">Share</span>
+      </div>
+    </div>
+
+    <div class="slack-canvas-doc-inner">
+      <h1 class="slack-canvas-doc-title">Agentic Mission Control</h1>
+      <p class="slack-canvas-doc-meta">Created in Slack Canvas · Styled like Slack design system · Content mirrors Global View (North America)</p>
+
+      <!-- GlobalAlertSummaryStrip -->
+      <div
+        class="global-alert-summary"
+        role="status"
+        aria-live="polite"
+        aria-label="4 open alerts"
+      >
+        <div class="global-alert-summary-left">
+          <div class="global-alert-ping-wrap" aria-hidden="true">
+            <span class="global-alert-ping"></span>
+            <span class="global-alert-dot"></span>
+          </div>
+          <div class="global-alert-summary-text">
+            <span class="global-alert-summary-count">4 open alerts</span>
+            <span class="global-alert-summary-meta" aria-hidden="true">·</span>
+            <span class="global-alert-summary-meta global-alert-summary-meta--critical">1 critical</span>
+            <span class="global-alert-summary-meta" aria-hidden="true">·</span>
+            <span class="global-alert-summary-meta">4 operational zones</span>
+            <span class="global-alert-summary-meta" aria-hidden="true">·</span>
+            <span class="global-alert-summary-hint" title="Digital · vector index">Top: Retrieval degraded</span>
+          </div>
+        </div>
+        <div class="global-alert-summary-actions">
+          <button type="button" class="global-alert-cta">
+            View alerts
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- GlobalViewPage header -->
+      <div class="global-page-header">
+        <div>
+          <div class="global-breadcrumbs">
+            <a class="global-crumb-link" href="#">Global View</a>
+            <span class="global-crumb-sep">/</span>
+            <span class="global-crumb-current">North America</span>
+          </div>
+          <h2 class="global-page-title">AI agents across North America</h2>
+        </div>
+      </div>
+
+      <div class="canvas-map-metrics-stack">
+        <!-- Map stage (continent) -->
+        <div class="global-map-shell gv-grid-bg">
+          <div class="global-map-stage global-map-stage--continent">
+            <p class="sr-only">North America map with twenty-two agent cluster markers. Click the alert marker to zoom into the United States hub map.</p>
+            <svg class="map-stage-visual" viewBox="0 0 720 420" role="img" aria-label="North America agent footprint map">
+              <defs>
+                <linearGradient id="na-bg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#f0f4f8"/>
+                  <stop offset="100%" stop-color="#e8eef5"/>
+                </linearGradient>
+              </defs>
+              <rect width="720" height="420" fill="url(#na-bg)" rx="8"/>
+              <!-- Simplified continent silhouette -->
+              <path fill="rgba(18,100,163,0.08)" stroke="rgba(18,100,163,0.2)" stroke-width="1.5"
+                d="M 120 280 Q 100 200 180 140 Q 260 80 400 100 Q 520 110 580 180 Q 620 240 600 320 Q 560 380 420 400 Q 280 410 160 360 Z"/>
+              <!-- Cluster dots (22) -->
+              <g fill="#007a5a" stroke="#fff" stroke-width="1.2">
+                <circle cx="200" cy="220" r="5"/><circle cx="230" cy="200" r="5"/><circle cx="260" cy="185" r="5"/>
+                <circle cx="290" cy="175" r="5"/><circle cx="320" cy="168" r="5"/><circle cx="350" cy="165" r="5"/>
+                <circle cx="380" cy="168" r="5"/><circle cx="410" cy="175" r="5"/><circle cx="440" cy="185" r="5"/>
+                <circle cx="470" cy="200" r="5"/><circle cx="500" cy="220" r="5"/><circle cx="340" cy="200" r="5"/>
+                <circle cx="360" cy="215" r="5"/><circle cx="380" cy="228" r="5"/><circle cx="400" cy="238" r="5"/>
+                <circle cx="280" cy="240" r="5"/><circle cx="310" cy="255" r="5"/><circle cx="450" cy="250" r="5"/>
+                <circle cx="480" cy="265" r="5"/><circle cx="420" cy="270" r="5"/><circle cx="350" cy="280" r="5"/>
+                <circle cx="380" cy="295" r="5"/>
+              </g>
+              <!-- Alert cluster (USW-7) -->
+              <g transform="translate(395 248)">
+                <circle r="14" fill="none" stroke="rgba(224,30,94,0.35)" stroke-width="2" opacity="0.9">
+                  <animate attributeName="r" values="10;16;10" dur="2.4s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/>
+                </circle>
+                <circle r="7" fill="#e01e5a" stroke="#fff" stroke-width="2"/>
+              </g>
+              <text x="360" y="48" text-anchor="middle" fill="#616061" font-size="13" font-weight="600">North America · 22 clusters</text>
+            </svg>
+            <p class="map-stage-caption" id="continent-map-hint">
+              North America map with twenty-two agent cluster markers. Click the alert marker to zoom into the United States hub map.
+            </p>
+          </div>
+        </div>
+
+        <!-- TelemetryMetricsPanel → horizontal layout for Canvas -->
+        <div
+          id="telemetry-panel-metrics"
+          class="telemetry-aside-body gv-scrollbar telemetry-tabpanel"
+          role="tabpanel"
+          aria-labelledby="tab-telemetry-metrics"
+          aria-describedby="telemetry-metrics-scope"
+        >
+          <h3 class="sr-only" id="tab-telemetry-metrics">Telemetry · Metrics</h3>
+          <p class="telemetry-metrics-scope" id="telemetry-metrics-scope">
+            Scope: North America — all 43 agent clusters on the map.
+          </p>
+
+          <div class="canvas-metrics-horizontal">
+            <div class="telemetry-card">
+              <div class="telemetry-label-row">
+                Total requests
+                <span class="telemetry-trend-up">▲ 12%</span>
+              </div>
+              <div class="telemetry-value-xl">
+                14.2M <span class="telemetry-value-unit">/min</span>
+              </div>
+              <div class="telemetry-bars" aria-hidden="true">
+                <div class="telemetry-bar"></div><div class="telemetry-bar"></div><div class="telemetry-bar"></div>
+                <div class="telemetry-bar"></div><div class="telemetry-bar"></div><div class="telemetry-bar"></div>
+                <div class="telemetry-bar"></div>
+              </div>
+            </div>
+
+            <div class="telemetry-card">
+              <div class="telemetry-label-row">Trust score trend</div>
+              <div class="telemetry-value-inline">
+                <div class="telemetry-value-xl">98.7%</div>
+                <div class="telemetry-value-unit telemetry-value-unit--sub">North America avg</div>
+              </div>
+              <div class="telemetry-sparkline-wrap">
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M0,30 C20,30 30,10 50,15 C70,20 80,5 100,10" fill="none" stroke="#1264a3" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M0,30 C20,30 30,10 50,15 C70,20 80,5 100,10 L100,40 L0,40 Z" fill="url(#spark)" opacity="0.2"/>
+                  <defs>
+                    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#1264a3"/>
+                      <stop offset="100%" stop-color="#1264a3" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+
+            <div class="telemetry-card">
+              <div class="telemetry-split-inner">
+                <div>
+                  <div class="telemetry-stat-label">Active sessions</div>
+                  <div class="telemetry-stat-value">42,891</div>
+                  <div class="telemetry-stat-context">Active across region</div>
+                </div>
+                <div class="telemetry-hr" aria-hidden="true"></div>
+                <div>
+                  <div class="telemetry-stat-label">System latency</div>
+                  <div class="telemetry-stat-value">124<span class="telemetry-value-unit">ms</span></div>
+                  <div class="telemetry-stat-context">avg across North America</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="canvas-footer-note">
+          This HTML is a <strong>Slack Canvas–style snapshot</strong> of the live app’s Global View. Open the real product at
+          <a href="https://trustops-enterprise-ai-gov-5c102193b1cd.herokuapp.com/" target="_blank" rel="noopener">Mission Control (demo)</a>
+          — same information architecture as <code>index.html</code> / <code>GlobalViewPage</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,215 @@
+{
+  "id": "regional-payroll-sync-by-pritesh-chavan",
+  "title": "Regional Payroll Sync",
+  "createdBy": "Pritesh Chavan",
+  "workspaceName": "Acme Inc",
+  "personas": [
+    {
+      "id": "julia",
+      "name": "Julia Anderson",
+      "designation": "Employee",
+      "role": "London office; reports missing \u00a32,500 and requests an incident via Employee Agent",
+      "type": "user"
+    },
+    {
+      "id": "jason",
+      "name": "Jason",
+      "designation": "HR Fulfiller",
+      "role": "Resolves UK regional payroll cases in the fulfiller console (Slack channel); approves batch off-cycle corrections",
+      "type": "user"
+    },
+    {
+      "id": "slackbot",
+      "name": "Slackbot",
+      "designation": "App",
+      "role": "Employee Agent: payroll intake, Workday/ADP audit, proactive fulfiller alerts, multi-channel pattern correlation",
+      "type": "app"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "surface",
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot"
+      }
+    },
+    {
+      "id": "step-2",
+      "type": "user_message",
+      "content": {
+        "text": "Hey, I just checked my payslip and it looks like I'm missing \u00a32,500. Can you log an incident for me?",
+        "personaId": "julia"
+      }
+    },
+    {
+      "id": "step-3",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Parsing payroll discrepancy, pulling your profile, and opening a UK regional case\u2026"
+      }
+    },
+    {
+      "id": "step-4",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Hi Julia\u2014I've handled the intake side for you.\n\n*What I picked up*\n\u2022 Intent: *Payroll discrepancy* (\u00a32,500 short on your latest payslip)\n\u2022 Your employee ID came straight from your Slack profile\u2014no extra forms needed\n\n*Case*\n\u2022 *#8842* \u2014 priority *High*\n\u2022 Routed to the *UK Regional* fulfiller queue\n\u2022 I've already kicked off a Workday \u2194 ADP cross-check so HR isn't starting from zero\n\nYou'll get another DM from me once there's a payment date or if I need one quick clarification. Thanks for flagging it early\u2014that helps us protect everyone on the same payroll lane."
+      }
+    },
+    {
+      "id": "step-5",
+      "type": "surface",
+      "context": {
+        "surface": "channel",
+        "channel": "#uk-regional-payroll"
+      }
+    },
+    {
+      "id": "step-6",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Syncing Case #8842 with your fulfiller console view\u2026"
+      }
+    },
+    {
+      "id": "step-7",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "construct_case",
+        "text": "New assignment: payroll discrepancy escalated from a single employee report (London).",
+        "caseTitle": "Case #8842",
+        "caseStatus": "UK Regional \u2014 High",
+        "caseFields": [
+          {
+            "label": "Employee",
+            "value": "Julia Anderson \u2014 London office"
+          },
+          {
+            "label": "Reported variance",
+            "value": "\u00a32,500 underpayment vs expected payslip"
+          },
+          {
+            "label": "Source thread",
+            "value": "Slack DM with Employee Agent (full transcript linked in console)"
+          },
+          {
+            "label": "Queue",
+            "value": "UK Regional payroll fulfilment"
+          },
+          {
+            "label": "AI triage note",
+            "value": "Automated audit running: Workday compensation vs ADP pay calc"
+          }
+        ],
+        "caseNote": "Jason\u2014context from Julia's DM is attached so you can see exactly what she saw on her payslip."
+      }
+    },
+    {
+      "id": "step-8",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Comparing Workday base, allowances, and effective dates against ADP for this cycle\u2026"
+      }
+    },
+    {
+      "id": "step-9",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "Jason\u2014I've noticed a structural mismatch worth your eyes before you touch adjustments.\n\n*Proactive Assistance* (high signal)\n\u2022 *Red alert:* Employee received a *4.5% raise* in HRIS effective *Jan 1*; payroll is still calculating at the *2023* rate.\n\u2022 That explains Julia's \u00a32,500 gap on this run\u2014it's not a one-off keying error on her record alone.\n\n*What you can do*\n\u2022 Open the side-by-side breakdown to confirm comp rows and effective dating before we widen the blast radius.\n\nChoose an action below to continue.",
+        "choices": ["View Mismatch"]
+      }
+    },
+    {
+      "id": "step-10",
+      "type": "user_action",
+      "content": {
+        "action": "view_mismatch",
+        "trigger": "button",
+        "personaId": "jason",
+        "choices": ["View Mismatch"]
+      }
+    },
+    {
+      "id": "step-11",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Here's the clean split, Jason\u2014same story in both systems, different effective dates.\n\n*Workday (HRIS)*\n\u2022 Base salary band updated *Jan 1* (+4.5%)\n\u2022 Approval chain complete; no pending workflow on Julia's profile\n\n*ADP (payroll engine)*\n\u2022 Pay calc still referencing *2023* rate table for this EMEA lane\n\u2022 Allowance and tax wrappers synced; *base rate* is the stuck field\n\n*So what*\n\u2022 Julia's \u00a32,500 delta is consistent with the raise row not flowing into ADP's calc file for February.\n\u2022 Next I'm scanning *Slack*, *email*, and the *HR portal* from the last *2 hours* to see who's else is hitting the same pattern\u2014stand by for volume."
+      }
+    },
+    {
+      "id": "step-12",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Correlating new tickets across Slack, email, and portal (last 2 hours)\u2026"
+      }
+    },
+    {
+      "id": "step-13",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "text_with_buttons",
+        "text": "I've handled the pattern pass\u2014Julia wasn't the only one caught in the drift.\n\n*Correlation (last 2 hours)*\n\u2022 *76* open or reopened items with the same *Jan 1 raise / 2023 payroll rate* signature\n\u2022 Channels: Slack DMs, payroll inbox, and self-service portal\u2014merged into one cohort for you\n\u2022 Estimated combined variance: *\u00a3190,000* across the group (same root cause as Case #8842)\n\n*Recommended path*\n\u2022 One regional reconciler run \u2192 single off-cycle file to ADP \u2192 all 76 corrected together\n\nYou can kick the batch fix when you're ready\u2014I'll post confirmations back to each thread.\n\nChoose an action below to continue.",
+        "choices": ["Resolve all 76 \u2014 off-cycle file"]
+      }
+    },
+    {
+      "id": "step-14",
+      "type": "user_action",
+      "content": {
+        "action": "resolve_batch_off_cycle",
+        "trigger": "button",
+        "personaId": "jason",
+        "choices": ["Resolve all 76 \u2014 off-cycle file"]
+      }
+    },
+    {
+      "id": "step-15",
+      "type": "bot_typing",
+      "content": {
+        "duration": 1,
+        "statusText": "Staging OC-UK-8842-BATCH, linking Case #8842, and submitting to ADP\u2026"
+      }
+    },
+    {
+      "id": "step-16",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Nice work, Jason\u2014I've handled the submission side.\n\n*Batch closure*\n\u2022 ADP accepted *OC-UK-8842-BATCH*\n\u2022 *76* employees queued on the same off-cycle pay run (Julia included)\n\u2022 Case *#8842* is the anchor record for audit; the rest are cross-linked\n\nPayroll notifications are going out in Slack so no one's left guessing. If ADP bounces a row, I'll ping you here with the exact exception file."
+      }
+    },
+    {
+      "id": "step-17",
+      "type": "surface",
+      "context": {
+        "surface": "dm",
+        "with": "Slackbot",
+        "personaId": "julia",
+        "resetConversation": true
+      }
+    },
+    {
+      "id": "step-18",
+      "type": "app_message",
+      "content": {
+        "personaId": "slackbot",
+        "templateId": "plain_text",
+        "text": "Julia\u2014quick, honest update on your \u00a32,500.\n\n*What happened*\n\u2022 Your raise hit Workday *Jan 1*, but our payroll engine was still pricing you at *2023* rates\u2014classic sync lag, not something you did wrong.\n\u2022 Your report was the nudge that let us catch *75 colleagues* in the same situation.\n\n*What's next*\n\u2022 HR approved a single off-cycle correction; you're in that batch with everyone else\n\u2022 Funds should follow your payroll calendar's next off-cycle date\u2014I'll DM again if that window moves\n\nThanks again\u2014you saved a lot of people a slower, lonelier fight with payroll."
+      }
+    }
+  ]
+}

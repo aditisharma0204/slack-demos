@@ -1,0 +1,21 @@
+{
+  "personaId": "julia",
+  "title": "Julia Anderson",
+  "description": "London-based employee who reports a £2,500 payslip shortfall to HR Service Bot and receives confirmation after the regional sync fix.",
+  "stepIds": [
+    "step-1",
+    "step-2",
+    "step-3",
+    "step-4",
+    "step-5",
+    "step-6",
+    "step-7",
+    "step-16",
+    "step-17"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Julia. Report your payslip issue to HR Service Bot and see how your report triggers a wider fix.",
+    "channels": ["#general", "#hr-payroll-operations"],
+    "dms": ["Slackbot"]
+  }
+}

@@ -7,7 +7,8 @@ import { deleteDemoPlugin } from './vite-plugin-delete-demo'
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    port: 5176,
+    port: 3000,
+    strictPort: true,
   },
   plugins: [react(), tailwindcss(), deleteDemoPlugin()],
   resolve: {

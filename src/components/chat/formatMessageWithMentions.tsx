@@ -40,7 +40,15 @@ export function formatMessageWithMentions(text: string, personaNames: string[]):
   const emojified = emojifyText(text ?? '')
   if (!emojified) return emojified
   if (!personaNames?.length) return formatBold(emojified)
-  const sorted = [...personaNames].filter(Boolean).sort((a, b) => b.length - a.length)
+  const mentionCandidates = new Set<string>()
+  for (const rawName of personaNames) {
+    const name = (rawName ?? '').trim()
+    if (!name) continue
+    mentionCandidates.add(name)
+    const firstName = name.split(/\s+/u)[0]
+    if (firstName) mentionCandidates.add(firstName)
+  }
+  const sorted = [...mentionCandidates].sort((a, b) => b.length - a.length)
   let parts: ReactNode[] = [emojified]
   for (const name of sorted) {
     parts = parts.flatMap((part) => {

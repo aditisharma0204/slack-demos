@@ -1,0 +1,24 @@
+{
+  "personaId": "jason",
+  "title": "Jason",
+  "description": "HR Fulfiller who works Case #8842 in #uk-regional-payroll, uses Proactive Assistance to view the Workday vs ADP mismatch, and approves a batch off-cycle correction for 76 employees.",
+  "stepIds": [
+    "step-5",
+    "step-6",
+    "step-7",
+    "step-8",
+    "step-9",
+    "step-10",
+    "step-11",
+    "step-12",
+    "step-13",
+    "step-14",
+    "step-15",
+    "step-16"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Jason. Pick up Case #8842, follow the proactive mismatch alert, and close 76 discrepancies in one off-cycle run.",
+    "channels": ["#uk-regional-payroll", "#general"],
+    "dms": ["Slackbot"]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "personaId": "priya",
+  "title": "Priya Nair",
+  "description": "HR Payroll Operations specialist who receives the regional sync alert in-channel and approves the off-cycle correction for 76 employees.",
+  "stepIds": [
+    "step-8",
+    "step-9",
+    "step-10",
+    "step-11",
+    "step-12",
+    "step-13",
+    "step-14",
+    "step-15"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Priya. Open the payroll alert, run the regional reconciler, and approve the off-cycle batch.",
+    "channels": ["#general", "#hr-payroll-operations"],
+    "dms": ["Slackbot"]
+  }
+}

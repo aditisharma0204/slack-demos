@@ -16,6 +16,13 @@ export interface Persona {
   dms?: string[]
 }
 
+/** Optional row under Slack sidebar “Apps” (e.g. embedded Mission Control shell). */
+export interface StorySidebarApp {
+  id: string
+  label: string
+  avatarUrl?: string
+}
+
 export interface StoryConfig {
   id: string
   title: string
@@ -24,6 +31,8 @@ export interface StoryConfig {
   steps: StoryStep[]
   introInstructions?: string
   workspaceName?: string
+  /** When set, listed under Apps in the story chrome (e.g. Agentic Mission Control). */
+  sidebarApps?: StorySidebarApp[]
 }
 
 export type StoryStep =
@@ -39,9 +48,12 @@ export type StoryStep =
 /** Which pane(s) to show. Single = one full-width view; dual = 60% left, 40% right (Slackbot always right when present). */
 export type ViewportView = 'slackbot' | 'channel' | 'thread'
 
+/** Left pane in dual mode (Mission Control = embedded app canvas, not a chat surface). */
+export type DualLeftPane = 'channel' | 'thread' | 'mission_control'
+
 export type Viewport =
   | { mode: 'single'; view: ViewportView }
-  | { mode: 'dual'; left: 'channel' | 'thread'; right: 'slackbot' | 'thread' }
+  | { mode: 'dual'; left: DualLeftPane; right: 'slackbot' | 'thread' }
 
 export interface BaseStep {
   id: string
@@ -56,6 +68,9 @@ export interface SurfaceStep extends BaseStep {
     surface: 'channel' | 'dm' | 'app_home'
     channel?: string
     with?: string
+    /** Whose Slack client this DM is shown in (user persona id); required when inferring from `with` is ambiguous */
+    personaId?: string
+    resetConversation?: boolean
   }
 }
 

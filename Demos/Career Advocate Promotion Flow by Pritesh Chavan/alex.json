@@ -1,0 +1,31 @@
+{
+  "personaId": "alex",
+  "title": "Alex",
+  "description": "Senior Developer who checks goal status, creates a SMART AI goal, and submits a promotion request",
+  "stepIds": [
+    "step-1",
+    "step-2",
+    "step-3",
+    "step-4",
+    "step-5",
+    "step-6",
+    "step-7",
+    "step-8",
+    "step-9",
+    "step-10",
+    "step-11",
+    "step-12",
+    "step-13",
+    "step-14",
+    "step-15",
+    "step-16",
+    "step-17",
+    "step-21",
+    "step-22"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Alex. Check your goal status, define a SMART goal, request promotion, and receive the final approval update.",
+    "channels": ["#general", "#engineering-career"],
+    "dms": ["Slackbot", "Sarah"]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "personaId": "julia",
+  "title": "Julia Anderson",
+  "description": "London-based employee who reports a £2,500 payslip shortfall; her report triggers Case #8842 and a UK regional payroll audit.",
+  "stepIds": [
+    "step-1",
+    "step-2",
+    "step-3",
+    "step-4",
+    "step-17",
+    "step-18"
+  ],
+  "overrides": {
+    "introInstructions": "You're viewing as Julia. Ask Employee Agent to log a payroll incident and see how one report escalates into a regional fix.",
+    "channels": ["#general", "#uk-regional-payroll"],
+    "dms": ["Slackbot"]
+  }
+}

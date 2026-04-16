@@ -105,6 +105,11 @@ export function StoryBuilder() {
       {/* Preview area */}
       <main className="flex-1 p-6 overflow-auto flex flex-col min-w-0">
         <div className="flex-1 flex flex-col overflow-hidden max-w-4xl mx-auto w-full min-h-0 rounded-lg" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <DemoPersonaBar
+            personas={personas}
+            selectedPersonaId={viewAsPersonaId}
+            onPersonaChange={setViewAsPersonaId}
+          />
           <div className="flex-1 min-h-0 overflow-hidden" style={{ backgroundColor: 'var(--slack-main-bg)' }}>
             <SlackLayout
               workspaceName="Acme Inc"
@@ -117,11 +122,6 @@ export function StoryBuilder() {
               </div>
             </SlackLayout>
           </div>
-          <DemoPersonaBar
-            personas={personas}
-            selectedPersonaId={viewAsPersonaId}
-            onPersonaChange={setViewAsPersonaId}
-          />
         </div>
       </main>
     </div>
