@@ -4,6 +4,7 @@ import type { LatLngBoundsExpression, LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import { ChatHeader } from '@/components/chat/ChatHeader'
+import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
 import { SecondaryButton } from '@/components/ui/DesignSystemButtons'
 
 type FleetSite = {
@@ -744,28 +745,20 @@ function AgentHubModal({
   )
 }
 
-/* ── Post-investigate canvas placeholder ── */
-
-function InvestigationCanvas() {
-  return (
-    <div className="flex-1 flex items-center justify-center p-8" style={{ color: 'var(--slack-msg-muted)' }}>
-      <div className="text-center space-y-2">
-        <p className="mc-type-section m-0" style={{ color: 'var(--slack-text)' }}>
-          Order Processing Agent &mdash; Investigation
-        </p>
-        <p className="mc-type-meta m-0">
-          Remediation in progress &middot; follow the thread on the right
-        </p>
-      </div>
-    </div>
-  )
-}
-
 /**
  * Light-mode control tower for Agentic Mission Control (demo).
  * Uses design tokens from slack.css (--mc-* / --slack-*) and tiered surfaces.
+ *
+ * Once `investigated` is true, swaps to the InvestigationCanvas which renders
+ * the live Service Graph (or Evals overlay during retrain) driven by `currentStepId`.
  */
-export function MissionControlTowerPanel({ onInvestigate }: { onInvestigate?: () => void }) {
+export function MissionControlTowerPanel({
+  onInvestigate,
+  currentStepId,
+}: {
+  onInvestigate?: () => void
+  currentStepId?: string
+}) {
   const liveIncidentRef = useRef<HTMLDivElement>(null)
   const [agentHubOpen, setAgentHubOpen] = useState(false)
   const [investigated, setInvestigated] = useState(false)
@@ -800,7 +793,7 @@ export function MissionControlTowerPanel({ onInvestigate }: { onInvestigate?: ()
       />
 
       {investigated ? (
-        <InvestigationCanvas />
+        <InvestigationCanvas stepId={currentStepId} />
       ) : (
         <section className="mc-hero-shell p-4" aria-labelledby="mc-hero-heading">
           <h2 id="mc-hero-heading" className="sr-only">

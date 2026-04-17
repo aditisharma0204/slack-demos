@@ -658,7 +658,10 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
                 {leftView === 'thread' && renderPane('thread', threadState, 'Thread')}
                 {leftView === 'mission_control' && (
                   <div className="flex flex-col min-h-0 min-w-0 h-full overflow-hidden bg-white rounded-2xl">
-                    <MissionControlTowerPanel onInvestigate={() => handleChoiceClick('Stop traffic')} />
+                    <MissionControlTowerPanel
+                      onInvestigate={() => handleChoiceClick('Stop traffic')}
+                      currentStepId={currentStep?.id}
+                    />
                   </div>
                 )}
               </div>
