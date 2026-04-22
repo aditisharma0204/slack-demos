@@ -332,7 +332,9 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     return undefined
   })()
 
-  const renderPane = (view: ViewportView, state: typeof slackbotState, title: string) => {
+  // mission_control is rendered via MissionControlTowerPanel, never through
+  // ChatView, so renderPane only accepts the chat-pane viewport variants.
+  const renderPane = (view: 'slackbot' | 'channel' | 'thread', state: typeof slackbotState, title: string) => {
     const isActive = activeView === view
     const msgs = state.chatMessages
     const hasPaneChoices = msgs.length > 0 && !!msgs[msgs.length - 1].choices
