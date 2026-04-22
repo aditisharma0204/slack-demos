@@ -29,6 +29,26 @@ const TOTAL_TESTS = TESTS.reduce((s, t) => s + t.total, 0)
 const TOTAL_FAILURES = TESTS.reduce((s, t) => s + t.baselineFailures, 0)
 const BASELINE_PASS_RATE = ((TOTAL_TESTS - TOTAL_FAILURES) / TOTAL_TESTS) * 100 // 91.2%
 
+/**
+ * Coverage cards: high-level breakdown of the eval SUITE by Galileo-style
+ * dimension (Safety / Quality / Agentic). Independent from the per-row
+ * categories below — these cards summarize the test library, the rows show
+ * the run progress. Totals add to 86 to match the full suite.
+ */
+type CoverageCategory = {
+  id: string
+  label: string
+  total: number
+  /** Final failure count once retrain completes (drives 98.4% summary). */
+  finalFailed: number
+}
+
+const COVERAGE: CoverageCategory[] = [
+  { id: 'safety', label: 'Safety & Compliance', total: 32, finalFailed: 0 },
+  { id: 'quality', label: 'Response Quality', total: 28, finalFailed: 0 },
+  { id: 'agentic', label: 'Agentic Behavior', total: 26, finalFailed: 1 },
+]
+
 type RowState = {
   done: number
   failed: number
@@ -152,6 +172,10 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
         </div>
       </header>
 
+      {(isRetraining || isComplete) && (
+        <CoverageCards overallProgress={overallProgress} isComplete={isComplete} />
+      )}
+
       <div className="flex-1 min-h-0 overflow-auto px-4 py-3 space-y-2" style={{ backgroundColor: '#fafafa' }}>
         {TESTS.map((test, idx) => (
           <EvalRow key={test.id} test={test} state={rows[idx]} />
@@ -222,6 +246,172 @@ function ProgressBar({ progress, done, total }: { progress: number; done: number
         {done}/{total}
       </span>
     </div>
+  )
+}
+
+function CoverageCards({
+  overallProgress,
+  isComplete,
+}: {
+  overallProgress: number
+  isComplete: boolean
+}) {
+  return (
+    <div
+      className="px-4 pt-2.5 pb-3 flex-shrink-0"
+      style={{
+        backgroundColor: 'var(--slack-pane-bg)',
+        borderBottom: '1px solid var(--slack-border)',
+      }}
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <h4
+          className="text-[13px] font-extrabold m-0"
+          style={{ color: 'var(--slack-text)' }}
+        >
+          Eval suite coverage
+        </h4>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center px-2.5 py-1 rounded text-[12px] font-semibold border transition hover:bg-[var(--slack-btn-hover-bg)] cursor-pointer"
+          style={{
+            backgroundColor: 'var(--slack-btn-bg)',
+            color: 'var(--slack-text)',
+            borderColor: 'var(--slack-btn-secondary-border)',
+          }}
+        >
+          View library
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {COVERAGE.map((c) => {
+          const passing = isComplete
+            ? c.total - c.finalFailed
+            : Math.min(c.total, Math.round(c.total * overallProgress))
+          const cardStatus: 'running' | 'clean' | 'flagged' = isComplete
+            ? c.finalFailed > 0
+              ? 'flagged'
+              : 'clean'
+            : 'running'
+
+          const borderColor =
+            cardStatus === 'clean'
+              ? '#b8e0ce'
+              : cardStatus === 'flagged'
+                ? 'var(--mc-critical-soft-border)'
+                : 'var(--slack-border)'
+          const bg =
+            cardStatus === 'clean'
+              ? '#f0faf6'
+              : cardStatus === 'flagged'
+                ? 'var(--mc-critical-soft-bg)'
+                : 'var(--slack-pane-bg)'
+
+          return (
+            <div
+              key={c.id}
+              className="rounded-md px-3 py-2.5"
+              style={{
+                border: `1px solid ${borderColor}`,
+                backgroundColor: bg,
+                transition: 'border-color 0.3s ease, background-color 0.3s ease',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div
+                  className="text-[13px] font-extrabold m-0 truncate"
+                  style={{ color: 'var(--slack-text)' }}
+                >
+                  {c.label}
+                </div>
+                <CoverageStatusDot status={cardStatus} />
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span
+                  className="text-[18px] font-extrabold tabular-nums leading-none"
+                  style={{
+                    color:
+                      cardStatus === 'clean'
+                        ? 'var(--mc-success)'
+                        : cardStatus === 'flagged'
+                          ? 'var(--mc-critical)'
+                          : 'var(--slack-text)',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  {passing}
+                </span>
+                <span
+                  className="text-[13px] font-semibold tabular-nums"
+                  style={{ color: 'var(--slack-msg-muted)' }}
+                >
+                  / {c.total}
+                </span>
+                <span
+                  className="text-[11px] ml-auto"
+                  style={{ color: 'var(--slack-msg-muted)' }}
+                >
+                  passing
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function CoverageStatusDot({ status }: { status: 'running' | 'clean' | 'flagged' }) {
+  if (status === 'clean') {
+    return (
+      <span
+        className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
+        style={{ backgroundColor: 'var(--mc-success)' }}
+        aria-label="All passing"
+      >
+        <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+          <path
+            d="M3.5 8.5L6.5 11.5L12.5 5.5"
+            stroke="white"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    )
+  }
+  if (status === 'flagged') {
+    return (
+      <span
+        className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
+        style={{ backgroundColor: 'var(--mc-critical)' }}
+        aria-label="Flagged for review"
+      >
+        <svg width="8" height="8" viewBox="0 0 16 16" fill="none" aria-hidden>
+          <path d="M4 4L12 12M12 4L4 12" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+      </span>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
+      style={{ backgroundColor: '#eef4f8' }}
+      aria-label="Running"
+    >
+      <svg className="ep-spinner" width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
+        <path
+          d="M14 8a6 6 0 0 1-6 6"
+          stroke="var(--mc-accent)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+    </span>
   )
 }
 

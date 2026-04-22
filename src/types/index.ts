@@ -46,7 +46,7 @@ export type StoryStep =
   | BotTypingStep
 
 /** Which pane(s) to show. Single = one full-width view; dual = 60% left, 40% right (Slackbot always right when present). */
-export type ViewportView = 'slackbot' | 'channel' | 'thread'
+export type ViewportView = 'slackbot' | 'channel' | 'thread' | 'mission_control'
 
 /** Left pane in dual mode (Mission Control = embedded app canvas, not a chat surface). */
 export type DualLeftPane = 'channel' | 'thread' | 'mission_control'

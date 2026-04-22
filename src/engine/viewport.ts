@@ -58,6 +58,11 @@ export function getActiveViewForStep(steps: StoryStep[], stepIndex: number): Vie
   ) {
     return 'slackbot'
   }
+  // Single mission_control: no chat surface is active; fall back to slackbot
+  // (used only for chat-state computation, the pane itself isn't a chat view).
+  if (explicitVp?.mode === 'single' && explicitVp.view === 'mission_control') {
+    return 'slackbot'
+  }
   const surface = getSurfaceAtStep(steps, stepIndex)
   if (!surface) return 'slackbot'
   if (surface.kind === 'dm') return 'slackbot'

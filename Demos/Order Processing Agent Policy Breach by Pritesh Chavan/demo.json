@@ -31,6 +31,7 @@
     {
       "id": "step-1",
       "type": "surface",
+      "viewport": { "mode": "single", "view": "mission_control" },
       "context": {
         "surface": "dm",
         "with": "MC Agent",
@@ -38,30 +39,9 @@
       }
     },
     {
-      "id": "step-2",
-      "type": "app_message",
-      "content": {
-        "personaId": "slackbot",
-        "templateId": "text_with_buttons",
-        "text": "Hi Jordan—I've noticed a *CRITICAL* governance signal on your production fleet.\n\n*Order Processing Agent — policy breach*\n• *Symptom:* Answering off-topic questions at *3 warnings/min*\n• *Policy:* Domain must stay within assignment (ref: *POL-AGT-DOMAIN-REM-03*)\n\n*Operational impact*\n• *Users exposed / hr:* ~420\n• *Apps affected:* Order Processing, Checkout Assist (read-only)\n• *Revenue at risk (est.):* $180k / hr until contained\n• *Cluster:* *USW-7*\n\nYou can open *Mission Control* here in Slack for blast radius, traffic, and workflow—or stay in this thread and I'll walk you through remediation.\n\nChoose an action below to continue.",
-        "choices": ["Open Mission Control"]
-      }
-    },
-    {
-      "id": "step-3",
-      "type": "user_action",
-      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
-      "content": {
-        "action": "open_mission_control",
-        "trigger": "button",
-        "personaId": "jordan",
-        "choices": ["Open Mission Control"]
-      }
-    },
-    {
       "id": "step-4",
       "type": "user_action",
-      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
+      "viewport": { "mode": "single", "view": "mission_control" },
       "content": {
         "action": "mc_stop_traffic",
         "trigger": "button",

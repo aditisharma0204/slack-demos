@@ -5,7 +5,11 @@ import 'leaflet/dist/leaflet.css'
 
 import { ChatHeader } from '@/components/chat/ChatHeader'
 import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
+import { PermissionsEvalCard } from '@/components/governance/PermissionsEvalCard'
+import { PolicyChipWithImpact } from '@/components/governance/PolicyChip'
+import { TimeScopeToggle, type TimeScope } from '@/components/governance/TimeScopeToggle'
 import { SecondaryButton } from '@/components/ui/DesignSystemButtons'
+import { getFleetStateFromUrl, type FleetState } from '@/data/governance/missionControlState'
 
 type FleetSite = {
   id: string
@@ -222,6 +226,275 @@ function FleetStatsGrid() {
         </ul>
       </div>
     </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Galileo-inspired governance modules (observability, protection, evaluation).
+// Mirrors the three pillars from the Galileo product (docs.galileo.ai) in a
+// compact, scannable layout suited to an IT director monitoring an agent fleet.
+// ──────────────────────────────────────────────────────────────────────────────
+
+type KpiTone = 'critical' | 'warn' | 'success'
+
+type KpiSpec = {
+  label: string
+  value: string
+  trendPct: number
+  /** When true, an upward trend is *bad* (e.g. latency). */
+  higherIsWorse?: boolean
+  tone: KpiTone
+  data: number[]
+}
+
+function toneAccent(tone: KpiTone) {
+  if (tone === 'critical') return 'var(--mc-critical)'
+  if (tone === 'warn') return 'var(--mc-warn-amber)'
+  return 'var(--mc-success)'
+}
+
+function toneSoftBg(tone: KpiTone) {
+  if (tone === 'critical') return 'var(--mc-critical-soft-bg)'
+  if (tone === 'warn') return '#fdf5e7'
+  return 'var(--mc-success-soft-bg)'
+}
+
+function KpiCard({ kpi, gradId }: { kpi: KpiSpec; gradId: string }) {
+  const accent = toneAccent(kpi.tone)
+  const max = Math.max(...kpi.data)
+  const min = Math.min(...kpi.data)
+  const range = max - min || 1
+  const w = 220
+  const h = 44
+  const stepX = w / (kpi.data.length - 1)
+  const points = kpi.data.map((v, i) => {
+    const x = i * stepX
+    const y = h - ((v - min) / range) * (h - 4) - 2
+    return [x, y] as const
+  })
+  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+  const fillPath = `${linePath} L ${w} ${h} L 0 ${h} Z`
+  const trendIsUp = kpi.trendPct > 0
+  const trendBad = kpi.higherIsWorse ? trendIsUp : !trendIsUp
+  const trendColor = trendBad ? accent : 'var(--mc-success)'
+
+  return (
+    <div className="mc-kpi-card">
+      <div className="mc-kpi-card__head">
+        <span className="mc-kpi-card__label">{kpi.label}</span>
+        <span
+          className="mc-kpi-card__pill"
+          style={{ color: accent, backgroundColor: toneSoftBg(kpi.tone), borderColor: accent + '33' }}
+        >
+          {kpi.value}
+        </span>
+      </div>
+      <svg className="mc-kpi-card__chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={accent} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={accent} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill={`url(#${gradId})`} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke={accent}
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="mc-kpi-card__foot">
+        <span className="mc-kpi-card__trend" style={{ color: trendColor }}>
+          {trendIsUp ? '↑' : '↓'} {Math.abs(kpi.trendPct).toFixed(1)}%
+        </span>
+        <span className="mc-kpi-card__time">10AM · 12PM · 2PM · 4PM · 6PM</span>
+      </div>
+    </div>
+  )
+}
+
+type KpiScopeSet = Record<TimeScope, KpiSpec[]>
+
+const OBS_KPIS_INCIDENT: KpiScopeSet = {
+  '1D': [
+    { label: 'Tool Selection Quality', value: '81.2%', trendPct: -2.1, tone: 'warn', data: [78, 80, 82, 81, 83, 79, 82, 81, 80, 81, 79, 78, 80, 81] },
+    { label: 'Context Adherence', value: '73.6%', trendPct: -8.4, tone: 'critical', data: [88, 86, 84, 82, 80, 78, 76, 74, 72, 73, 72, 73, 74, 73] },
+    { label: 'Agent Action Completion', value: '49.8%', trendPct: -22.1, tone: 'critical', data: [88, 84, 78, 70, 60, 55, 50, 48, 50, 49, 50, 48, 50, 49] },
+    { label: 'Time to First Token', value: '743 ms', trendPct: 18.2, tone: 'warn', higherIsWorse: true, data: [320, 380, 420, 480, 540, 600, 680, 720, 740, 720, 740, 750, 730, 740] },
+  ],
+  '7D': [
+    { label: 'Tool Selection Quality', value: '83.8%', trendPct: -0.6, tone: 'warn', data: [86, 85, 84, 84, 83, 82, 84, 83, 84, 83, 84, 83, 84, 84] },
+    { label: 'Context Adherence', value: '82.1%', trendPct: -3.4, tone: 'warn', data: [90, 89, 88, 87, 85, 84, 82, 83, 82, 81, 82, 82, 82, 82] },
+    { label: 'Agent Action Completion', value: '71.2%', trendPct: -8.1, tone: 'warn', data: [82, 80, 78, 76, 74, 72, 70, 71, 70, 71, 72, 71, 72, 71] },
+    { label: 'Time to First Token', value: '612 ms', trendPct: 6.1, tone: 'warn', higherIsWorse: true, data: [560, 580, 600, 610, 620, 600, 615, 612, 620, 612, 615, 612, 612, 612] },
+  ],
+  '30D': [
+    { label: 'Tool Selection Quality', value: '86.4%', trendPct: 1.2, tone: 'success', data: [85, 86, 86, 87, 86, 87, 86, 87, 86, 86, 87, 86, 87, 86] },
+    { label: 'Context Adherence', value: '88.2%', trendPct: 0.4, tone: 'success', data: [88, 88, 88, 89, 88, 88, 89, 88, 88, 88, 89, 88, 88, 88] },
+    { label: 'Agent Action Completion', value: '83.6%', trendPct: -0.8, tone: 'warn', data: [85, 85, 84, 84, 84, 83, 84, 83, 84, 84, 83, 84, 83, 84] },
+    { label: 'Time to First Token', value: '548 ms', trendPct: 0.9, tone: 'success', higherIsWorse: true, data: [550, 545, 548, 550, 545, 548, 550, 548, 548, 545, 548, 548, 548, 548] },
+  ],
+}
+
+const OBS_KPIS_CLEAR: KpiScopeSet = {
+  '1D': [
+    { label: 'Tool Selection Quality', value: '94.6%', trendPct: 0.8, tone: 'success', data: [93, 94, 94, 95, 94, 95, 94, 95, 95, 94, 95, 95, 95, 95] },
+    { label: 'Context Adherence', value: '96.2%', trendPct: 0.4, tone: 'success', data: [95, 96, 96, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
+    { label: 'Agent Action Completion', value: '92.4%', trendPct: 1.6, tone: 'success', data: [89, 90, 90, 91, 91, 92, 91, 92, 92, 92, 92, 92, 92, 92] },
+    { label: 'Time to First Token', value: '418 ms', trendPct: -3.2, tone: 'success', higherIsWorse: true, data: [430, 425, 425, 420, 420, 418, 418, 415, 418, 418, 418, 418, 418, 418] },
+  ],
+  '7D': [
+    { label: 'Tool Selection Quality', value: '93.8%', trendPct: 1.2, tone: 'success', data: [92, 93, 93, 93, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
+    { label: 'Context Adherence', value: '95.7%', trendPct: 0.6, tone: 'success', data: [95, 95, 95, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
+    { label: 'Agent Action Completion', value: '91.0%', trendPct: 0.9, tone: 'success', data: [90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91] },
+    { label: 'Time to First Token', value: '432 ms', trendPct: -1.4, tone: 'success', higherIsWorse: true, data: [440, 438, 435, 432, 432, 430, 432, 432, 432, 432, 432, 432, 432, 432] },
+  ],
+  '30D': [
+    { label: 'Tool Selection Quality', value: '92.1%', trendPct: 0.5, tone: 'success', data: [91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92] },
+    { label: 'Context Adherence', value: '94.4%', trendPct: 0.2, tone: 'success', data: [94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
+    { label: 'Agent Action Completion', value: '89.2%', trendPct: 1.4, tone: 'success', data: [87, 88, 88, 88, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89] },
+    { label: 'Time to First Token', value: '448 ms', trendPct: -0.5, tone: 'success', higherIsWorse: true, data: [450, 450, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448] },
+  ],
+}
+
+function ObservabilityKpiStrip({
+  idBase,
+  scope,
+  onScopeChange,
+  fleetState,
+}: {
+  idBase: string
+  scope: TimeScope
+  onScopeChange: (s: TimeScope) => void
+  fleetState: FleetState
+}) {
+  const set = fleetState === 'all_clear' ? OBS_KPIS_CLEAR : OBS_KPIS_INCIDENT
+  const kpis = set[scope]
+  return (
+    <section className="mc-galileo-section" aria-labelledby="mc-galileo-obs-heading">
+      <header className="mc-galileo-section-meta mc-galileo-section-meta--with-action">
+        <div className="mc-galileo-section-meta__left">
+          <span className="mc-galileo-num">02</span>
+          <span className="mc-galileo-kicker" id="mc-galileo-obs-heading">AI Observability</span>
+          <span className="mc-galileo-loc">Production traces · last {scope}</span>
+        </div>
+        <TimeScopeToggle value={scope} onChange={onScopeChange} label="Observability time scope" />
+      </header>
+      <div className="mc-kpi-grid">
+        {kpis.map((k, i) => (
+          <KpiCard key={k.label} kpi={k} gradId={`${idBase}_kpi_${scope}_${i}`} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ProtectionCard() {
+  const rulesets = [
+    {
+      name: 'Ruleset 1 · Quality',
+      checks: ['Adherence', 'Completeness'],
+      triggered: 12,
+      tone: 'warn' as KpiTone,
+    },
+    {
+      name: 'Ruleset 2 · Safety',
+      checks: ['Prompt Injections', 'PII'],
+      triggered: 4,
+      tone: 'critical' as KpiTone,
+    },
+  ]
+  return (
+    <section className="mc-galileo-card" aria-labelledby="mc-galileo-protect-heading">
+      <header className="mc-galileo-section-meta">
+        <span className="mc-galileo-num">03</span>
+        <span className="mc-galileo-kicker" id="mc-galileo-protect-heading">Real-time Protection</span>
+      </header>
+      <div className="mc-galileo-card-headline">
+        <span className="mc-galileo-card-headline__v">16</span>
+        <span className="mc-galileo-card-headline__l">risks blocked in production · last 24h</span>
+      </div>
+      <ul className="mc-protect-list">
+        {rulesets.map((r) => {
+          const accent = toneAccent(r.tone)
+          return (
+            <li key={r.name} className="mc-protect-row">
+              <div className="mc-protect-row__head">
+                <span className="mc-protect-row__name">{r.name}</span>
+                <span
+                  className="mc-protect-row__pill"
+                  style={{ color: accent, backgroundColor: toneSoftBg(r.tone), borderColor: accent + '33' }}
+                >
+                  {r.triggered} triggered
+                </span>
+              </div>
+              <div className="mc-protect-row__checks">
+                {r.checks.map((c) => (
+                  <span key={c} className="mc-protect-chip">{c}</span>
+                ))}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+function EvaluationCard({ gradId }: { gradId: string }) {
+  const data = [89, 88, 90, 91, 89, 92, 91, 93, 95, 94, 96, 97, 98, 98]
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const range = max - min || 1
+  const w = 220
+  const h = 56
+  const stepX = w / (data.length - 1)
+  const points = data.map((v, i) => {
+    const x = i * stepX
+    const y = h - ((v - min) / range) * (h - 4) - 2
+    return [x, y] as const
+  })
+  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+  const fillPath = `${linePath} L ${w} ${h} L 0 ${h} Z`
+
+  return (
+    <section className="mc-galileo-card" aria-labelledby="mc-galileo-eval-heading">
+      <header className="mc-galileo-section-meta">
+        <span className="mc-galileo-num">04</span>
+        <span className="mc-galileo-kicker" id="mc-galileo-eval-heading">AI Evaluation</span>
+      </header>
+      <div className="mc-galileo-card-headline">
+        <span className="mc-galileo-card-headline__v" style={{ color: 'var(--mc-success)' }}>98.4%</span>
+        <span className="mc-galileo-card-headline__l">eval gate pass rate · last run 12m ago</span>
+      </div>
+      <svg className="mc-eval-chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--mc-success)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="var(--mc-success)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill={`url(#${gradId})`} />
+        <path d={linePath} fill="none" stroke="var(--mc-success)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="mc-eval-stats">
+        <div className="mc-eval-stat">
+          <span className="mc-eval-stat__v">124</span>
+          <span className="mc-eval-stat__l">cases run</span>
+        </div>
+        <div className="mc-eval-stat">
+          <span className="mc-eval-stat__v" style={{ color: 'var(--mc-success)' }}>+7.2%</span>
+          <span className="mc-eval-stat__l">vs last week</span>
+        </div>
+        <div className="mc-eval-stat">
+          <span className="mc-eval-stat__v">2</span>
+          <span className="mc-eval-stat__l">regressions blocked</span>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -682,8 +955,11 @@ function AgentUSW7Detail({ onInvestigate, onClose }: { onInvestigate: () => void
               {agent.actionLabel && (
                 <button
                   type="button"
-                  className="mt-2 px-2.5 py-1 rounded text-[11px] font-medium whitespace-nowrap transition-colors hover:bg-[#f0f0f0] active:scale-[0.98]"
-                  style={{ backgroundColor: 'var(--slack-pane-bg)', border: '1px solid var(--slack-border)', color: 'var(--slack-text)', lineHeight: '16px' }}
+                  className={
+                    agent.status === 'critical'
+                      ? 'mc-cta mc-cta--primary mt-3'
+                      : 'mc-cta mc-cta--secondary mt-3'
+                  }
                   onClick={onInvestigate}
                 >
                   {agent.actionLabel}
@@ -745,25 +1021,209 @@ function AgentHubModal({
   )
 }
 
+/* ─── Hero segment subcomponents ─────────────────────────────────────────── */
+
+function IncidentAlertStrip({ onViewAlerts }: { onViewAlerts: () => void }) {
+  return (
+    <div className="mc-alert-strip" role="status">
+      <span className="mc-alert-icon" aria-hidden>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2.5L17.5 16.25H2.5L10 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" fill="none" />
+          <path d="M10 7.5V11.25" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+          <circle cx="10" cy="13.75" r="0.75" fill="currentColor" />
+        </svg>
+      </span>
+      <p className="mc-alert-text">
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>4 open alerts</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>1 critical</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>4 operational zones</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>Top: Retrieval degraded</strong>
+      </p>
+      <SecondaryButton
+        onClick={onViewAlerts}
+        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mc-accent)] focus-visible:ring-offset-1"
+      >
+        View alerts
+      </SecondaryButton>
+    </div>
+  )
+}
+
+function AllClearAlertStrip() {
+  return (
+    <div className="mc-alert-strip mc-alert-strip--clear" role="status">
+      <span className="mc-alert-icon" aria-hidden>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M4 10.5L8.5 15L16 6.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+      </span>
+      <p className="mc-alert-text">
+        <strong>All systems clear</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong>0 critical</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong>4 operational zones healthy</strong>
+        <span className="mx-1.5" aria-hidden>·</span>
+        <strong>Last incident: 2d ago</strong>
+      </p>
+      <button type="button" className="mc-cta mc-cta--ambient">
+        View 7-day report
+      </button>
+    </div>
+  )
+}
+
+function IncidentBlock({ warnGradId }: { warnGradId: string }) {
+  return (
+    <div className="mc-hero-incident">
+      <div className="mc-incident-meta">
+        <span className="mc-incident-num">01</span>
+        <span className="mc-incident-kicker">Critical incident</span>
+        <span className="mc-incident-loc">USW-7 · Production fleet</span>
+      </div>
+
+      <h3 className="mc-incident-title">Order Processing Agent — policy breach</h3>
+
+      <div className="mc-incident-grid">
+        <ul className="mc-incident-facts">
+          <li>
+            <span className="mc-incident-facts__k">Symptom</span>
+            <span>Off-topic responses at <strong>3 warnings/min</strong></span>
+          </li>
+          <li>
+            <span className="mc-incident-facts__k">Policy</span>
+            <span>
+              Domain must stay within assignment{' '}
+              <PolicyChipWithImpact policyRef="POL-AGT-DOMAIN-REM-03" />
+            </span>
+          </li>
+          <li>
+            <span className="mc-incident-facts__k">Apps</span>
+            <span>Order Processing, Checkout Assist <em className="not-italic" style={{ color: 'var(--slack-msg-muted)' }}>(read-only)</em></span>
+          </li>
+        </ul>
+
+        <div className="mc-incident-visual">
+          <span className="mc-incident-visual__label">Warnings · last 60s</span>
+          <span className="mc-incident-visual__value">3</span>
+          <WarningsSparkline gradId={warnGradId} />
+        </div>
+      </div>
+
+      <div className="mc-incident-impact">
+        <div className="mc-incident-impact__cell">
+          <span className="mc-incident-impact__v">~420</span>
+          <span className="mc-incident-impact__l">Users / hr exposed</span>
+        </div>
+        <div className="mc-incident-impact__cell">
+          <span className="mc-incident-impact__v" style={{ color: 'var(--mc-critical)' }}>$180k</span>
+          <span className="mc-incident-impact__l">Revenue at risk / hr</span>
+        </div>
+        <div className="mc-incident-impact__cell">
+          <span className="mc-incident-impact__v">USW-7</span>
+          <span className="mc-incident-impact__l">Cluster</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AllClearHighlight() {
+  // Recent governance log shown in steady state — last 5 actions
+  const log = [
+    { time: '2h ago', text: 'Permissions eval suite passed (412 cases)', verdict: 'OK' as const },
+    { time: '6h ago', text: 'Domain restriction policy v3.2 → v3.3 rolled out · 6 agents', verdict: 'AUTO' as const },
+    { time: '11h ago', text: 'Auto-remediated 3 borderline interactions in Loyalty cohort', verdict: 'AUTO' as const },
+    { time: '1d ago', text: 'Order Processing Agent — policy breach contained', verdict: 'OK' as const },
+    { time: '2d ago', text: 'Quarterly governance review approved', verdict: 'OK' as const },
+  ]
+  return (
+    <div>
+      <div className="mc-clear-highlight">
+        <div>
+          <div className="mc-clear-meta">
+            <span className="mc-clear-num">01</span>
+            <span className="mc-clear-kicker">All clear</span>
+            <span className="mc-clear-loc">North America fleet · 6 clusters</span>
+          </div>
+          <h3 className="mc-clear-title">Fleet healthy — operating within policy</h3>
+          <p className="mc-clear-sub">
+            No active incidents. 0 critical alerts in the last 24h. Permissions
+            eval suite ran 18m ago and passed across all monitored policies.
+          </p>
+        </div>
+        <div className="mc-clear-stat" aria-label="Compliance pass rate">
+          <span className="mc-clear-stat__v">99.4%</span>
+          <span className="mc-clear-stat__l">Policy compliance · 24h</span>
+        </div>
+      </div>
+      <div className="mc-clear-log" aria-label="Recent governance activity">
+        <div className="mc-clear-log__head">
+          <span>Recent governance activity</span>
+          <button type="button" className="mc-cta mc-cta--ambient">View audit log →</button>
+        </div>
+        <ul className="mc-clear-log__list">
+          {log.map((row, i) => (
+            <li key={i} className="mc-clear-log__row">
+              <span className="mc-clear-log__time">{row.time}</span>
+              <span>{row.text}</span>
+              <span
+                className={`mc-clear-log__verdict mc-clear-log__verdict--${row.verdict === 'OK' ? 'ok' : 'auto'}`}
+              >
+                {row.verdict}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 /**
  * Light-mode control tower for Agentic Mission Control (demo).
  * Uses design tokens from slack.css (--mc-* / --slack-*) and tiered surfaces.
  *
  * Once `investigated` is true, swaps to the InvestigationCanvas which renders
  * the live Service Graph (or Evals overlay during retrain) driven by `currentStepId`.
+ *
+ * Homepage is state-aware via `getFleetStateFromUrl()`. The default is
+ * `active_incident`; reviewers can switch to the steady state via `?fleet=all_clear`.
  */
 export function MissionControlTowerPanel({
   onInvestigate,
   currentStepId,
+  forceInvestigated = false,
 }: {
   onInvestigate?: () => void
   currentStepId?: string
+  /**
+   * When the surrounding shell knows investigation has already begun (e.g.
+   * dual viewport is open), pass `true` so the panel renders the canvas
+   * regardless of its own local state. This survives remounts when the
+   * viewport switches from single → dual.
+   */
+  forceInvestigated?: boolean
 }) {
   const liveIncidentRef = useRef<HTMLDivElement>(null)
   const [agentHubOpen, setAgentHubOpen] = useState(false)
-  const [investigated, setInvestigated] = useState(false)
+  const [investigatedLocal, setInvestigatedLocal] = useState(false)
+  const [obsScope, setObsScope] = useState<TimeScope>('1D')
+  const [fleetState, setFleetState] = useState<FleetState>(getFleetStateFromUrl())
   const gradIdBase = useId().replace(/:/g, '_')
   const warnGradId = `mcwg_${gradIdBase}`
+  const isAllClear = fleetState === 'all_clear'
+  const investigated = investigatedLocal || forceInvestigated
+
+  // Re-read fleet state on URL changes (back/forward, demo nav)
+  useEffect(() => {
+    const onPop = () => setFleetState(getFleetStateFromUrl())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const scrollToIncident = useCallback(() => {
     liveIncidentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -771,13 +1231,9 @@ export function MissionControlTowerPanel({
 
   const handleInvestigate = useCallback(() => {
     setAgentHubOpen(false)
-    setInvestigated(true)
+    setInvestigatedLocal(true)
     onInvestigate?.()
   }, [onInvestigate])
-
-  const bulletRow = 'mc-type-body flex gap-2.5 items-start m-0'
-  const bullet = 'mt-0.5 shrink-0 font-bold select-none'
-  const bulletStyle = { color: 'var(--slack-msg-muted)' }
 
   return (
     <div
@@ -797,41 +1253,10 @@ export function MissionControlTowerPanel({
       ) : (
         <section className="mc-hero-shell p-4" aria-labelledby="mc-hero-heading">
           <h2 id="mc-hero-heading" className="sr-only">
-            Incident response
+            {isAllClear ? 'Fleet status — all clear' : 'Incident response'}
           </h2>
           <div className="mc-hero-segment">
-            <div className="mc-alert-strip" role="status">
-              <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: 'var(--mc-alert-icon-bg)',
-                  border: '1px solid var(--mc-alert-icon-border)',
-                  color: 'var(--mc-warn-amber)',
-                }}
-                aria-hidden
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 2.5L17.5 16.25H2.5L10 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" fill="none" />
-                  <path d="M10 7.5V11.25" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-                  <circle cx="10" cy="13.75" r="0.75" fill="currentColor" />
-                </svg>
-              </span>
-              <p className="flex-1 min-w-0 m-0 mc-type-body leading-snug" style={{ color: 'var(--mc-muted-strong)' }}>
-                <span className="font-semibold" style={{ color: 'var(--mc-warn-amber)' }}>4 open alerts</span>
-                <span className="mx-1.5" style={{ color: 'var(--color-gray-900)' }} aria-hidden>&middot;</span>
-                <span className="font-semibold" style={{ color: 'var(--mc-warn-amber)' }}>1 critical</span>
-                <span className="mx-1.5" style={{ color: 'var(--color-gray-900)' }} aria-hidden>&middot;</span>
-                <span className="font-semibold" style={{ color: 'var(--mc-warn-amber)' }}>4 operational zones</span>
-                <span className="mx-1.5" style={{ color: 'var(--color-gray-900)' }} aria-hidden>&middot;</span>
-                <span className="font-semibold" style={{ color: 'var(--mc-warn-amber)' }}>Top: Retrieval degraded</span>
-              </p>
-              <SecondaryButton
-                onClick={scrollToIncident}
-                className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mc-accent)] focus-visible:ring-offset-1"
-              >
-                View alerts
-              </SecondaryButton>
-            </div>
+            {isAllClear ? <AllClearAlertStrip /> : <IncidentAlertStrip onViewAlerts={scrollToIncident} />}
           </div>
 
           <div className="mc-hero-segment mc-hero-segment--map">
@@ -839,63 +1264,32 @@ export function MissionControlTowerPanel({
           </div>
 
           <div className="mc-hero-segment">
-            <div ref={liveIncidentRef} className="mc-hero-incident">
-              <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                <span className="mc-type-overline" style={{ color: 'var(--mc-critical)' }}>Critical Incident</span>
-              </div>
-              <h3 className="mc-type-section m-0 mb-3">Order Processing Agent — policy breach</h3>
-
-              <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-start">
-                <div className="space-y-3 min-w-0">
-                  <span className="mc-type-body font-semibold m-0">Governance signal · production fleet</span>
-                  <ul className="space-y-2.5 list-none m-0 p-0">
-                    <li className={bulletRow}>
-                      <span className={bullet} style={bulletStyle}>•</span>
-                      <span><span className="font-semibold">Symptom:</span> Answering off-topic questions at{' '}<span className="font-semibold">3 warnings/min</span></span>
-                    </li>
-                    <li className={bulletRow}>
-                      <span className={bullet} style={bulletStyle}>•</span>
-                      <span><span className="font-semibold">Policy:</span> Domain must stay within assignment (ref:{' '}<span className="font-semibold">POL-AGT-DOMAIN-REM-03</span>)</span>
-                    </li>
-                  </ul>
-                </div>
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-lg p-3 min-w-[8.5rem] transition-colors hover:brightness-[1.02]"
-                  style={{ border: '1px solid var(--mc-critical-soft-border)', backgroundColor: 'var(--mc-critical-soft-bg)' }}
-                >
-                  <span className="mc-type-overline m-0" style={{ color: 'var(--mc-critical)' }}>Warnings / min</span>
-                  <span className="text-2xl font-black leading-none m-0" style={{ color: 'var(--mc-critical)' }}>3</span>
-                  <WarningsSparkline gradId={warnGradId} />
-                </div>
-              </div>
-
-              <div className="pt-3 mt-3 border-t" style={{ borderColor: 'var(--mc-divider)' }}>
-                <p className="mc-type-section m-0 mb-2 text-[15px]">Operational impact</p>
-                <ul className="space-y-2.5 list-none m-0 p-0">
-                  <li className={bulletRow}>
-                    <span className={bullet} style={bulletStyle}>•</span>
-                    <span><span className="font-semibold">Users exposed / hr:</span> ~420</span>
-                  </li>
-                  <li className={bulletRow}>
-                    <span className={bullet} style={bulletStyle}>•</span>
-                    <span><span className="font-semibold">Apps affected:</span> Order Processing, Checkout Assist (read-only)</span>
-                  </li>
-                  <li className={bulletRow}>
-                    <span className={bullet} style={bulletStyle}>•</span>
-                    <span>
-                      <span className="font-semibold">Revenue at risk (est.):</span>{' '}
-                      <span className="font-semibold" style={{ color: 'var(--mc-critical)' }}>$180k / hr</span> until contained
-                    </span>
-                  </li>
-                  <li className={bulletRow}>
-                    <span className={bullet} style={bulletStyle}>•</span>
-                    <span><span className="font-semibold">Cluster:</span> USW-7</span>
-                  </li>
-                </ul>
-              </div>
+            <div ref={liveIncidentRef}>
+              {isAllClear ? (
+                <AllClearHighlight />
+              ) : (
+                <IncidentBlock warnGradId={warnGradId} />
+              )}
             </div>
           </div>
+
           <FleetStatsGrid />
+
+          <ObservabilityKpiStrip
+            idBase={gradIdBase}
+            scope={obsScope}
+            onScopeChange={setObsScope}
+            fleetState={fleetState}
+          />
+
+          <div className="mc-galileo-pair">
+            <ProtectionCard />
+            <EvaluationCard gradId={`mceg_${gradIdBase}`} />
+          </div>
+
+          <div className="mc-hero-segment">
+            <PermissionsEvalCard />
+          </div>
         </section>
       )}
 

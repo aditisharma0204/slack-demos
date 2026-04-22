@@ -358,13 +358,14 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
   const leftView = !isSingle ? viewport.left : null
   const rightView = !isSingle ? viewport.right : null
   const missionControlSplit = !isSingle && viewport.mode === 'dual' && viewport.left === 'mission_control'
+  const missionControlSingle = isSingle && singleView === 'mission_control'
   /** Used for channel row highlight in the sidebar (ignore mission_control left pane). */
   const primarySidebarView: ViewportView = isSingle
     ? (singleView as ViewportView)
     : leftView === 'channel' || leftView === 'thread'
       ? (leftView as ViewportView)
       : 'slackbot'
-  const agentsRowSelected = !missionControlSplit && isSingle && singleView === 'slackbot'
+  const agentsRowSelected = !missionControlSplit && !missionControlSingle && isSingle && singleView === 'slackbot'
   const normalizeChannelName = (name: string) => name.replace(/^#/, '').trim().toLowerCase()
   const activeChannelLabel = channelName ? channelName.replace(/^#/, '').trim() : undefined
   const activeChannelKey = activeChannelLabel ? normalizeChannelName(activeChannelLabel) : undefined
@@ -616,7 +617,7 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
                   <span>Apps</span>
                 </div>
                 {slackSidebarApps.map((item) => {
-                  const appRowSelected = missionControlSplit
+                  const appRowSelected = missionControlSplit || missionControlSingle
                   return (
                     <div
                       key={item.id}
@@ -647,6 +648,17 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
               {singleView === 'slackbot' && renderPane('slackbot', slackbotState, appName)}
               {singleView === 'channel' && renderPane('channel', channelState, channelName ?? '#channel')}
               {singleView === 'thread' && renderPane('thread', threadState, 'Thread')}
+              {singleView === 'mission_control' && (
+                <div
+                  className="flex flex-col min-h-0 min-w-0 h-full overflow-hidden bg-white rounded-2xl"
+                  style={{ border: '1px solid var(--slack-border)' }}
+                >
+                  <MissionControlTowerPanel
+                    onInvestigate={() => handleChoiceClick('Stop traffic')}
+                    currentStepId={currentStep?.id}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -661,6 +673,7 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
                     <MissionControlTowerPanel
                       onInvestigate={() => handleChoiceClick('Stop traffic')}
                       currentStepId={currentStep?.id}
+                      forceInvestigated
                     />
                   </div>
                 )}
