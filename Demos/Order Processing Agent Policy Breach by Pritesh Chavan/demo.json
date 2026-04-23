@@ -20,7 +20,7 @@
     },
     {
       "id": "slackbot",
-      "name": "MC Agent",
+      "name": "Mission Control Agent",
       "avatar": "/assets/slackbot-icon.png",
       "designation": "Slack app",
       "role": "Surfaces governance signals, explains policy context, guides remediation, and posts fleet status",
@@ -34,7 +34,7 @@
       "viewport": { "mode": "single", "view": "mission_control" },
       "context": {
         "surface": "dm",
-        "with": "MC Agent",
+        "with": "Mission Control Agent",
         "personaId": "jordan"
       }
     },
@@ -57,8 +57,8 @@
       "content": {
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Quick heads-up before I flip the switch—this one's destructive in the sense that *live customer traffic stops* for the Order Processing Agent.\n\n*What happens*\n• *0%* traffic to the agent on *USW-7*\n• Requests *reroute* to the *fallback* policy-safe responder\n• Mission Control keeps an immutable audit entry tied to your Slack actor\n\nYou can confirm below and I'll execute immediately.\n\nChoose an action below to continue.",
-        "choices": ["Confirm stop traffic"]
+        "text": "*Order Processing Agent · USW-7*\nPolicy *POL-AGT-DOMAIN-REM-03* (Agent domain restriction) blocked *4 attempted actions* in the last *8 minutes*. The agent is operating outside its allowed domain.\n\n*Blast radius — this hour*\n• *280* Retail · logged-in users\n• *95* Guest checkout users\n• *45* Loyalty members\nTotal exposure *~420 users/hr*, all on USW-7.\n\n*If left running*\nThe cluster-wide circuit breaker trips in roughly *12 min* at current rate. Audit trail is being captured against your Slack actor.\n\n*Two paths forward*\n• *Stop traffic* — immediate containment. Routes requests to the fallback responder. Reversible.\n• *Override policy* — accept the risk, keep the agent live. Logged on the record.",
+        "choices": ["Stop traffic", "Override policy"]
       }
     },
     {
@@ -69,7 +69,7 @@
         "action": "confirm_stop_traffic",
         "trigger": "button",
         "personaId": "jordan",
-        "choices": ["Confirm stop traffic"],
+        "choices": ["Stop traffic"],
         "suppressAcknowledgment": true
       }
     },
@@ -139,7 +139,7 @@
       "content": {
         "personaId": "slackbot",
         "templateId": "text_with_buttons",
-        "text": "Retrain complete—and the eval gate looks strong.\n\n*Quality gate*\n• Eval pass rate: *98.4%* (up from *91.2%*)\n• Policy violations on the held-out test slice: *0*\n• Regression suite: *green* (checkout + order-status intents)\n\nYou can promote this build to production when you're comfortable.\n\nChoose an action below to continue.",
+        "text": "Retrain complete. The eval gate is green—this build is ready to promote.\n\n*Quality gate*\n• Eval pass rate: *98.4%* (up from *91.2%*)\n• Policy violations on the held-out test slice: *0*\n• Regression suite: *green* (checkout + order-status intents)\n\n*What deploy will do*\n• Target: *Order Processing Agent* — *US production*\n• Canary: *off* — traffic is already contained, this is a controlled bring-up\n• Rollback: one-click revert to last known-good in Mission Control\n\nClick below to start the deploy pipeline.",
         "choices": ["Deploy to production"]
       }
     },
@@ -151,29 +151,7 @@
         "action": "deploy_to_production",
         "trigger": "button",
         "personaId": "jordan",
-        "choices": ["Deploy to production"]
-      }
-    },
-    {
-      "id": "step-18",
-      "type": "app_message",
-      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
-      "content": {
-        "personaId": "slackbot",
-        "templateId": "text_with_buttons",
-        "text": "Before I ship to US production, one last human-in-the-loop check.\n\n*Deploy scope*\n• Target: *Order Processing Agent* — *US production*\n• Canary: *off* (you already contained traffic—this is a controlled bring-up)\n• Rollback: one-click revert to last known-good in Mission Control\n\nConfirm and I'll start the deploy pipeline.\n\nChoose an action below to continue.",
-        "choices": ["Confirm deploy to production"]
-      }
-    },
-    {
-      "id": "step-19",
-      "type": "user_action",
-      "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
-      "content": {
-        "action": "confirm_deploy_production",
-        "trigger": "button",
-        "personaId": "jordan",
-        "choices": ["Confirm deploy to production"],
+        "choices": ["Deploy to production"],
         "suppressAcknowledgment": true
       }
     },
@@ -231,7 +209,7 @@
       "viewport": { "mode": "dual", "left": "mission_control", "right": "slackbot" },
       "context": {
         "surface": "dm",
-        "with": "MC Agent",
+        "with": "Mission Control Agent",
         "personaId": "jordan",
         "resetConversation": true
       }

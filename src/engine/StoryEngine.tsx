@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
 import { useSharedDemoMode } from '@/hooks/useSharedDemoMode'
 import type { OAuthModalUsageItem, StoryConfig, StoryStep, PersonaConfig, StorySidebarApp, ViewportView } from '@/types'
@@ -154,8 +154,12 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
       const stepIndex0 = i - 1
       // Resolve the user_action step for this choice (supports branching by label),
       // then immediately advance one more step so action clicks feel instant.
+      // Use `>=` so we also match the current step when the user is sitting on the
+      // user_action whose choice they just clicked (e.g. homepage Investigate CTA
+      // bound to step-4). Otherwise we'd search past it and accidentally skip the
+      // following diagnostic app_message.
       const choiceStepIndex = steps.findIndex(
-        (s, idx) => idx > stepIndex0 && s.type === 'user_action' && (s as any).content?.choices?.includes(choice)
+        (s, idx) => idx >= stepIndex0 && s.type === 'user_action' && (s as any).content?.choices?.includes(choice)
       )
       if (choiceStepIndex >= 0) return Math.min(choiceStepIndex + 2, totalSteps)
       return Math.min(i + 1, totalSteps)
@@ -219,6 +223,14 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     isUserActionOpeningOAuthModal ||
     (currentStep?.type === 'modal_open' && (currentStep as any).content?.view === 'oauth-permission')
   const isModalOpenStep = isDatePickerModalView || isOAuthPermissionModalView
+  // Closure steps: pan the left mission_control panel back out to the all-clear
+  // homepage once the deploy is live and the chat is wrapping up. Story-specific
+  // (Order Processing Agent Policy Breach), kept narrow on purpose — only
+  // closure-style steps that explicitly read as "incident closed, calm view".
+  const isOrderProcessingClosure =
+    story.id === 'order-processing-agent-policy-breach-by-pritesh-chavan' &&
+    (currentStep?.id === 'step-24' || currentStep?.id === 'step-25' || currentStep?.id === 'step-26')
+  const isClosureStep = isOrderProcessingClosure
   const currentStepTextLength =
     currentStep?.type === 'app_message' || currentStep?.type === 'thread_reply'
       ? ((currentStep as any).content?.text ?? '').length
@@ -301,9 +313,23 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
     ? '/assets/hr-service-agent-avatar.png'
     : (appPersona?.avatar?.trim() || '/assets/slackbot-icon.png')
 
-  const slackbotState = computeChatStateForView(steps, stepIndex, 'slackbot', story.personas, lastSelectedChoice, appName)
-  const channelState = computeChatStateForView(steps, stepIndex, 'channel', story.personas, lastSelectedChoice, appName)
-  const threadState = computeChatStateForView(steps, stepIndex, 'thread', story.personas, lastSelectedChoice, appName)
+  // Per-message timestamp store. Each message ID is stamped on first build with
+  // the user's current local time, then that stamp is reused on subsequent
+  // renders so earlier messages don't drift forward as the demo advances.
+  // Stamps reset when StoryEngine remounts (e.g. switching demos).
+  const messageStampsRef = useRef<Map<string, string>>(new Map())
+  const stampForMessage = useCallback((id: string): string => {
+    const map = messageStampsRef.current
+    const existing = map.get(id)
+    if (existing) return existing
+    const formatted = formatChatTimestamp(new Date())
+    map.set(id, formatted)
+    return formatted
+  }, [])
+
+  const slackbotState = computeChatStateForView(steps, stepIndex, 'slackbot', story.personas, lastSelectedChoice, appName, stampForMessage)
+  const channelState = computeChatStateForView(steps, stepIndex, 'channel', story.personas, lastSelectedChoice, appName, stampForMessage)
+  const threadState = computeChatStateForView(steps, stepIndex, 'thread', story.personas, lastSelectedChoice, appName, stampForMessage)
 
   const activeState =
     activeView === 'slackbot' ? slackbotState
@@ -675,7 +701,8 @@ export function StoryEngine({ story, personaConfig, onPersonaChange, fullStoryMo
                     <MissionControlTowerPanel
                       onInvestigate={() => handleChoiceClick('Stop traffic')}
                       currentStepId={currentStep?.id}
-                      forceInvestigated
+                      forceInvestigated={!isClosureStep}
+                      forceFleetState={isClosureStep ? 'all_clear' : undefined}
                     />
                   </div>
                 )}
@@ -751,7 +778,8 @@ function computeChatStateForView(
   view: ChatViewType,
   personas: StoryConfig['personas'],
   lastSelectedChoice: string | null,
-  appDisplayName: string
+  appDisplayName: string,
+  stampForMessage: (id: string) => string
 ): {
   chatMessages: ChatMessagePayload[]
   pendingUserMessage: { text: string; author: string; avatarUrl?: string } | undefined
@@ -813,7 +841,6 @@ function computeChatStateForView(
       const persona = personas.find((p) => p.id === content?.personaId) ?? personas[0]
       const author = persona?.name ?? 'User'
       const text = content?.text ?? ''
-      const timestamp = '12:32 PM'
       if (i === upToIndex) {
         pendingUserMessage = { text, author, avatarUrl: resolvePersonaAvatarUrl(persona) }
       } else {
@@ -821,7 +848,7 @@ function computeChatStateForView(
           id: step.id,
           author,
           text,
-          timestamp,
+          timestamp: stampForMessage(step.id),
           isApp: false,
           avatarUrl: resolvePersonaAvatarUrl(persona),
         })
@@ -830,7 +857,7 @@ function computeChatStateForView(
     }
 
     if (step.type === 'app_message') {
-      const msg = buildAppMessagePayload(step as any, steps, i, personas, lastSelectedChoice, upToIndex)
+      const msg = buildAppMessagePayload(step as any, steps, i, personas, lastSelectedChoice, upToIndex, stampForMessage)
       lastChannelAppMessage = msg
       if (dedupeFirstMessageAfterSwitchBack) {
         const lastNonDivider = [...chatMessages].reverse().find((m) => !m.isNewDivider)
@@ -848,7 +875,7 @@ function computeChatStateForView(
     }
 
     if (step.type === 'thread_reply') {
-      const msg = buildThreadReplyPayload(step as any, steps, i, personas, lastSelectedChoice)
+      const msg = buildThreadReplyPayload(step as any, steps, i, personas, lastSelectedChoice, stampForMessage)
       if (dedupeFirstMessageAfterSwitchBack) {
         const lastNonDivider = [...chatMessages].reverse().find((m) => !m.isNewDivider)
         const isImmediateDuplicate =
@@ -901,11 +928,12 @@ function computeChatStateForView(
           ) {
             const choiceLabel = content?.choices?.[0]
             const acknowledgment = choiceLabel ? `Done! I've got your choice. One moment…` : "Got it! One moment…"
+            const ackId = `${step.id}-ack`
             chatMessages.push({
-              id: `${step.id}-ack`,
+              id: ackId,
               author: slackbotName,
               text: acknowledgment,
-              timestamp: 'Just now',
+              timestamp: stampForMessage(ackId),
               isApp: true,
               templateId: 'plain_text',
               templateContent: { text: acknowledgment, personaNames: personas.map((p) => p.name) },
@@ -932,11 +960,12 @@ function computeChatStateForView(
 
             if (start && end && /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end)) {
               const acknowledgment = `Thanks! I've got ${formatShortDate(start)}–${formatShortDate(end)}. I'll send this to your manager for approval.`
+              const ackId = `${step.id}-ack`
               chatMessages.push({
-                id: `${step.id}-ack`,
+                id: ackId,
                 author: slackbotName,
                 text: acknowledgment,
-                timestamp: 'Just now',
+                timestamp: stampForMessage(ackId),
                 isApp: true,
                 templateId: 'plain_text',
                 templateContent: { text: acknowledgment, personaNames: personas.map((p) => p.name) },
@@ -944,11 +973,12 @@ function computeChatStateForView(
               })
             } else if (!nextIsBotContent && !suppressAck && !prevWasOAuthModal) {
               const acknowledgment = "Thanks, I've got that. I'll take it from here."
+              const ackId = `${step.id}-ack`
               chatMessages.push({
-                id: `${step.id}-ack`,
+                id: ackId,
                 author: slackbotName,
                 text: acknowledgment,
-                timestamp: 'Just now',
+                timestamp: stampForMessage(ackId),
                 isApp: true,
                 templateId: 'plain_text',
                 templateContent: { text: acknowledgment, personaNames: personas.map((p) => p.name) },
@@ -983,7 +1013,8 @@ function buildAppMessagePayload(
   i: number,
   personas: StoryConfig['personas'],
   lastSelectedChoice: string | null,
-  upToIndex: number
+  upToIndex: number,
+  stampForMessage: (id: string) => string
 ): ChatMessagePayload {
   const content = step.content
   const persona = personas.find((p) => p.id === content?.personaId) ?? personas.find((p) => p.type === 'app')
@@ -1028,7 +1059,7 @@ function buildAppMessagePayload(
     id: step.id,
     author: persona?.name ?? 'Slackbot',
     text: displayText,
-    timestamp: 'Just now',
+    timestamp: stampForMessage(step.id),
     isApp: true,
     choices: choices?.length ? choices : undefined,
     templateId: content?.templateId,
@@ -1042,7 +1073,8 @@ function buildThreadReplyPayload(
   steps: StoryStep[],
   i: number,
   personas: StoryConfig['personas'],
-  lastSelectedChoice: string | null
+  lastSelectedChoice: string | null,
+  stampForMessage: (id: string) => string
 ): ChatMessagePayload {
   const content = step.content
   const nextStep = steps[i + 1]
@@ -1078,7 +1110,7 @@ function buildThreadReplyPayload(
     id: step.id,
     author: persona?.name ?? 'Slackbot',
     text: displayText,
-    timestamp: 'Just now',
+    timestamp: stampForMessage(step.id),
     isApp,
     avatarUrl: !isApp ? resolvePersonaAvatarUrl(persona) : undefined,
     choices: hasChoices ? choices : undefined,
@@ -1086,6 +1118,16 @@ function buildThreadReplyPayload(
     templateContent: templateId ? templateContent : undefined,
     personaNames: personas.map((p) => p.name),
   }
+}
+
+/**
+ * Format a Date as a Slack-style chat timestamp in the user's locale & timezone
+ * (e.g. "4:24 PM" for en-US, "16:24" for 24h locales). Empty `locales` arg
+ * defers to the runtime's resolved locale, and `toLocaleTimeString` already
+ * uses the user's local timezone — no special handling needed.
+ */
+function formatChatTimestamp(date: Date): string {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 /** Format YYYY-MM-DD as short date (e.g. "Mar 15") for acknowledgments. */

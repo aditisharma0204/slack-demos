@@ -5,7 +5,7 @@
  * the current `phase` to show traffic stop, retrain, and deploy states.
  *
  * Used inside the dual-viewport center pane during the Slack demo to give
- * the user a live visual of what MC Agent is doing in the chat.
+ * the user a live visual of what Mission Control Agent is doing in the chat.
  */
 
 import { type CSSProperties } from 'react'

@@ -143,7 +143,16 @@ export function ChatView({
                 key={msg.id}
                 message={msg}
                 onChoiceClick={onChoiceClick}
-                botTypingEnabled={msg.isApp === true && msg.id === typingBotMessageId}
+                // Only run the per-character typing animation while this is
+                // genuinely the message being delivered. The moment a new
+                // bot_typing indicator appears (showThinking=true), the user
+                // has advanced past this message — snap it to fully-typed so
+                // long bodies don't appear truncated mid-character.
+                botTypingEnabled={
+                  msg.isApp === true &&
+                  msg.id === typingBotMessageId &&
+                  !showThinking
+                }
                 onBotTypingTick={scrollToBottom}
                 appAvatarUrl={appAvatarUrl}
               />

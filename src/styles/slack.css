@@ -2348,18 +2348,28 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
 .mission-control-canvas .mc-policy-graph {
   width: 100%;
   height: 100%;
-  min-height: 600px;
+  min-height: 480px;
   background: var(--mc-tier1-bg);
   display: flex;
   flex-direction: column;
 }
-/* Scroller that hosts the fixed-size SVG. Allows horizontal scroll on
-   narrower panes without ever shrinking the text. */
+/* Toolbar: legend + zoom controls, sticky to the top of the panel. */
+.mission-control-canvas .mc-policy-graph__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--mc-tier3-border);
+  background: rgba(255, 255, 255, 0.96);
+}
+/* Scroller that hosts the SVG. Allows scroll on narrower panes or when
+   zoomed in past the natural canvas size. */
 .mission-control-canvas .mc-policy-graph__scroller {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -2369,25 +2379,58 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
   flex-shrink: 0;
 }
 .mission-control-canvas .mc-policy-graph__legend {
-  align-self: flex-end;
-  margin: 12px 16px 0;
   display: inline-flex;
-  gap: 16px;
-  font-size: 14px;
+  gap: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--slack-text);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--mc-tier3-border);
 }
 .mission-control-canvas .mc-policy-graph__legend-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
   margin-right: 6px;
   vertical-align: middle;
+}
+.mission-control-canvas .mc-policy-graph__zoom {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--mc-tier3-border);
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.mission-control-canvas .mc-policy-graph__zoom-btn,
+.mission-control-canvas .mc-policy-graph__zoom-level {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slack-text);
+  padding: 5px 10px;
+  cursor: pointer;
+  line-height: 1;
+  min-width: 28px;
+}
+.mission-control-canvas .mc-policy-graph__zoom-btn {
+  font-size: 16px;
+  font-weight: 500;
+}
+.mission-control-canvas .mc-policy-graph__zoom-level {
+  border-left: 1px solid var(--mc-tier3-border);
+  border-right: 1px solid var(--mc-tier3-border);
+  min-width: 48px;
+  font-variant-numeric: tabular-nums;
+}
+.mission-control-canvas .mc-policy-graph__zoom-btn:hover:not(:disabled),
+.mission-control-canvas .mc-policy-graph__zoom-level:hover {
+  background: var(--mc-tier1-bg);
+}
+.mission-control-canvas .mc-policy-graph__zoom-btn:disabled {
+  color: #a8a8a8;
+  cursor: not-allowed;
 }
 
 /* Investigation tab toggle */

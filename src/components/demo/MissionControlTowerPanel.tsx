@@ -392,21 +392,27 @@ function ObservabilityKpiStrip({
   )
 }
 
-function ProtectionCard() {
+function ProtectionCard({ fleetState = 'active_incident' }: { fleetState?: FleetState }) {
+  // The Safety ruleset is the live signal of the Order Processing Agent's
+  // policy breach — it should read critical while the incident is open and
+  // settle to warn (background noise) once we've deployed the retrained build.
+  // Headline count drops slightly because fewer blocks fire after retrain.
+  const isAllClear = fleetState === 'all_clear'
   const rulesets = [
     {
       name: 'Ruleset 1 · Quality',
       checks: ['Adherence', 'Completeness'],
-      triggered: 12,
+      triggered: isAllClear ? 6 : 12,
       tone: 'warn' as KpiTone,
     },
     {
       name: 'Ruleset 2 · Safety',
       checks: ['Prompt Injections', 'PII'],
-      triggered: 4,
-      tone: 'critical' as KpiTone,
+      triggered: isAllClear ? 1 : 4,
+      tone: (isAllClear ? 'warn' : 'critical') as KpiTone,
     },
   ]
+  const headlineBlocked = isAllClear ? 9 : 16
   return (
     <section className="mc-galileo-card" aria-labelledby="mc-galileo-protect-heading">
       <header className="mc-galileo-section-meta">
@@ -414,7 +420,7 @@ function ProtectionCard() {
         <span className="mc-galileo-kicker" id="mc-galileo-protect-heading">Real-time Protection</span>
       </header>
       <div className="mc-galileo-card-headline">
-        <span className="mc-galileo-card-headline__v">16</span>
+        <span className="mc-galileo-card-headline__v">{headlineBlocked}</span>
         <span className="mc-galileo-card-headline__l">risks blocked in production · last 24h</span>
       </div>
       <ul className="mc-protect-list">
@@ -500,10 +506,24 @@ function EvaluationCard({ gradId }: { gradId: string }) {
 
 function AgentFleetMap({
   onSelectProblem,
+  fleetState = 'active_incident',
 }: {
   onSelectProblem: (site: FleetSite) => void
+  fleetState?: FleetState
 }) {
-  const criticalSites = FLEET_SITES.filter((s) => !s.ok)
+  // In all-clear, every previously-red site reads as healthy. We map onto the
+  // same coordinate set so the visual density of the fleet stays identical —
+  // just no red pins.
+  const isAllClear = fleetState === 'all_clear'
+  const sites = isAllClear ? FLEET_SITES.map((s) => ({ ...s, ok: true })) : FLEET_SITES
+  const criticalSites = sites.filter((s) => !s.ok)
+
+  const mapCaption = isAllClear
+    ? 'Scroll to zoom · drag to pan'
+    : 'Scroll to zoom · drag to pan · click a red pin for incident details'
+  const mapAriaLabel = isAllClear
+    ? 'North America fleet map. Scroll to zoom, drag to pan. All sites operating within policy.'
+    : 'North America fleet map. Scroll to zoom, drag to pan. Click a red pin to open incident details.'
 
   return (
     <div className="mc-map-panel">
@@ -518,7 +538,7 @@ function AgentFleetMap({
         maxBoundsViscosity={0.9}
         scrollWheelZoom
         zoomControl={false}
-        aria-label="North America fleet map. Scroll to zoom, drag to pan. Click a red pin to open incident details."
+        aria-label={mapAriaLabel}
       >
         <MapResizeInvalidator />
         <TileLayer
@@ -528,7 +548,7 @@ function AgentFleetMap({
           maxZoom={20}
         />
         <ZoomControl position="bottomright" />
-        {FLEET_SITES.map((s) =>
+        {sites.map((s) =>
           s.ok ? (
             <CircleMarker
               key={s.id}
@@ -577,20 +597,22 @@ function AgentFleetMap({
           <p className="mc-type-overline m-0" style={{ color: 'var(--mc-muted-strong)' }}>
             North America fleet
           </p>
-          <p className="mc-type-caption m-0 mt-0.5">
-            Scroll to zoom · drag to pan · click a red pin for incident details
-          </p>
+          <p className="mc-type-caption m-0 mt-0.5">{mapCaption}</p>
         </div>
         <div className="mc-map-floating-legend" aria-hidden>
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: 'var(--mc-success)' }} />
             OK
           </span>
-          <span className="opacity-35">|</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: 'var(--mc-critical)' }} />
-            Issue
-          </span>
+          {!isAllClear && (
+            <>
+              <span className="opacity-35">|</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: 'var(--mc-critical)' }} />
+                Issue
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -664,10 +686,15 @@ const TOPO_EDGES: TopoEdge[] = [
 ]
 
 const USW7_AGENTS = [
-  { name: 'Order Processing Agent', sub: 'US production \u00b7 Retail', status: 'critical' as const, statusLabel: 'Policy breach detected', actionLabel: 'Stop traffic' },
-  { name: 'Response Orchestrator Agent', sub: 'Synthesis + policy', status: 'ok' as const, statusLabel: 'Nominal' },
+  // Sort: critical → warning → nominal. Reviewers should see what needs
+  // attention first, healthy agents last. The CTA on the critical agent
+  // is "Investigate" (not "Stop traffic"); stopping traffic is an action
+  // taken from inside the Mission Control Agent conversation, not the
+  // surface-level fleet card.
+  { name: 'Order Processing Agent', sub: 'US production \u00b7 Retail', status: 'critical' as const, statusLabel: 'Policy breach detected', actionLabel: 'Investigate' },
   { name: 'LLM Routing Agent', sub: 'Primary + fallback', status: 'warning' as const, statusLabel: 'Elevated latency' },
   { name: 'Evaluator Agent', sub: 'Golden sets \u00b7 RAG', status: 'warning' as const, statusLabel: 'Drift detected' },
+  { name: 'Response Orchestrator Agent', sub: 'Synthesis + policy', status: 'ok' as const, statusLabel: 'Nominal' },
   { name: 'Compliance Agent', sub: 'Policy enforcement', status: 'ok' as const, statusLabel: 'Nominal' },
   { name: 'Knowledge Base Agent', sub: 'Vector store \u00b7 Retrieval', status: 'ok' as const, statusLabel: 'Nominal' },
 ]
@@ -1069,9 +1096,6 @@ function AllClearAlertStrip() {
         <span className="mx-1.5" aria-hidden>·</span>
         <strong>Last incident: 2d ago</strong>
       </p>
-      <button type="button" className="mc-cta mc-cta--ambient">
-        View 7-day report
-      </button>
     </div>
   )
 }
@@ -1163,7 +1187,6 @@ function AllClearHighlight() {
       <div className="mc-clear-log" aria-label="Recent governance activity">
         <div className="mc-clear-log__head">
           <span>Recent governance activity</span>
-          <button type="button" className="mc-cta mc-cta--ambient">View audit log →</button>
         </div>
         <ul className="mc-clear-log__list">
           {log.map((row, i) => (
@@ -1197,6 +1220,7 @@ export function MissionControlTowerPanel({
   onInvestigate,
   currentStepId,
   forceInvestigated = false,
+  forceFleetState,
 }: {
   onInvestigate?: () => void
   currentStepId?: string
@@ -1207,12 +1231,20 @@ export function MissionControlTowerPanel({
    * viewport switches from single → dual.
    */
   forceInvestigated?: boolean
+  /**
+   * When the surrounding shell wants to pin the homepage to a specific fleet
+   * state (e.g. closure steps showing all-clear), pass it here. Overrides the
+   * URL-driven `getFleetStateFromUrl()` lookup. Useful for the closure pan-out
+   * after a deploy completes.
+   */
+  forceFleetState?: FleetState
 }) {
   const liveIncidentRef = useRef<HTMLDivElement>(null)
   const [agentHubOpen, setAgentHubOpen] = useState(false)
   const [investigatedLocal, setInvestigatedLocal] = useState(false)
   const [obsScope, setObsScope] = useState<TimeScope>('1D')
-  const [fleetState, setFleetState] = useState<FleetState>(getFleetStateFromUrl())
+  const [fleetStateLocal, setFleetStateLocal] = useState<FleetState>(getFleetStateFromUrl())
+  const fleetState = forceFleetState ?? fleetStateLocal
   const gradIdBase = useId().replace(/:/g, '_')
   const warnGradId = `mcwg_${gradIdBase}`
   const isAllClear = fleetState === 'all_clear'
@@ -1220,7 +1252,7 @@ export function MissionControlTowerPanel({
 
   // Re-read fleet state on URL changes (back/forward, demo nav)
   useEffect(() => {
-    const onPop = () => setFleetState(getFleetStateFromUrl())
+    const onPop = () => setFleetStateLocal(getFleetStateFromUrl())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -1260,7 +1292,7 @@ export function MissionControlTowerPanel({
           </div>
 
           <div className="mc-hero-segment mc-hero-segment--map">
-            <AgentFleetMap onSelectProblem={() => setAgentHubOpen(true)} />
+            <AgentFleetMap onSelectProblem={() => setAgentHubOpen(true)} fleetState={fleetState} />
           </div>
 
           <div className="mc-hero-segment">
@@ -1283,12 +1315,12 @@ export function MissionControlTowerPanel({
           />
 
           <div className="mc-galileo-pair">
-            <ProtectionCard />
+            <ProtectionCard fleetState={fleetState} />
             <EvaluationCard gradId={`mceg_${gradIdBase}`} />
           </div>
 
           <div className="mc-hero-segment">
-            <PermissionsEvalCard />
+            <PermissionsEvalCard fleetState={fleetState} />
           </div>
         </section>
       )}

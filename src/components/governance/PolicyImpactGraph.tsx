@@ -7,15 +7,13 @@
  * Edges are weighted by interaction count and colored by cohort/agent severity.
  * Edge labels sit in white pills so they stay legible where edges cross.
  *
- * Type sizing: every glyph is rendered at fixed CSS pixel sizes (≥14px).
- * To guarantee that, the SVG uses absolute width/height in CSS pixels and
- * NO viewBox — viewBox scaling would silently shrink text on narrow panes.
- * On narrower containers the parent scrolls horizontally; we deliberately
- * choose legibility over fluid responsiveness here because the audience
- * (60+ year old SVPs) reads this without zoom.
+ * Sizing: the SVG uses a viewBox so it scales crisply with the container and
+ * with the zoom toolbar. Default zoom (1.0) fits a comfortable 820×460 canvas.
+ * Zooming sets explicit pixel width/height on the SVG so the surrounding
+ * scroller can handle pan when the viewer wants more detail.
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   getImpactForPolicy,
@@ -25,27 +23,29 @@ import {
   type Severity,
 } from '@/data/governance/policyImpact'
 
-// Fixed pixel canvas — no viewBox, no scaling, no font shrink.
-// Columns are spread wide enough that edge labels can sit in the gap
-// between nodes (centered on each node's own Y) without ever colliding
-// with the cohort/agent name stacks that hang below the nodes.
-const W = 820
-const H = 500
-const COL_X = { cohort: 130, policy: 400, agent: 660 } as const
-const POLICY_W = 230
-const POLICY_H = 84
-const COHORT_R = 32
-const AGENT_W = 92
-const AGENT_H = 62
+// ── Canvas geometry (in viewBox units) ──────────────────────────────────────
+const VIEW_W = 820
+const VIEW_H = 460
+const COL_X = { cohort: 110, policy: 410, agent: 700 } as const
+const POLICY_W = 220
+const POLICY_H = 70
+const COHORT_R = 26
+const AGENT_W = 96
+const AGENT_H = 54
+
+// ── Zoom ────────────────────────────────────────────────────────────────────
+const ZOOM_MIN = 0.6
+const ZOOM_MAX = 2
+const ZOOM_STEP = 0.2
 
 function severityFill(s: Severity): string {
   switch (s) {
     case 'critical':
-      return '#fef0f2'
+      return '#fdecef'
     case 'warn':
-      return '#fff7e0'
+      return '#fff5dd'
     case 'success':
-      return '#e9f7f0'
+      return '#e6f5ee'
   }
 }
 function severityStroke(s: Severity): string {
@@ -59,62 +59,99 @@ function severityStroke(s: Severity): string {
   }
 }
 
-function plural(n: number, one: string, many: string) {
-  return n === 1 ? `${n} ${one}` : `${n} ${many}`
-}
-
 export function PolicyImpactGraph({ policyId }: { policyId: PolicyId }) {
   const impact = useMemo(() => getImpactForPolicy(policyId), [policyId])
+  const [zoom, setZoom] = useState(1)
+
   if (!impact) return null
   const { policy, cohorts, agents } = impact
 
-  // Vertical layout — keep room top/bottom for the 3-line label stacks.
-  const cohortYs = layoutY(cohorts.length, 120, H - 120)
-  const agentYs = layoutY(agents.length, 110, H - 110)
-  const policyY = H / 2
+  const cohortYs = layoutY(cohorts.length, 96, VIEW_H - 78)
+  const agentYs = layoutY(agents.length, 88, VIEW_H - 70)
+  const policyY = VIEW_H / 2
   const maxEdge = Math.max(1, ...cohorts.map((c) => c.count), ...agents.map((a) => a.count))
+
+  const handleZoomIn = () =>
+    setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)))
+  const handleZoomOut = () =>
+    setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)))
+  const handleZoomReset = () => setZoom(1)
 
   return (
     <div className="mc-policy-graph">
-      <div className="mc-policy-graph__legend" aria-hidden>
-        <span>
-          <span className="mc-policy-graph__legend-dot" style={{ background: '#c0132f' }} />
-          Critical
-        </span>
-        <span>
-          <span className="mc-policy-graph__legend-dot" style={{ background: '#b15300' }} />
-          Warn
-        </span>
-        <span>
-          <span className="mc-policy-graph__legend-dot" style={{ background: '#007a5a' }} />
-          Healthy
-        </span>
+      <div className="mc-policy-graph__toolbar">
+        <div className="mc-policy-graph__legend" aria-hidden>
+          <span>
+            <span className="mc-policy-graph__legend-dot" style={{ background: '#c0132f' }} />
+            Critical
+          </span>
+          <span>
+            <span className="mc-policy-graph__legend-dot" style={{ background: '#b15300' }} />
+            Warn
+          </span>
+          <span>
+            <span className="mc-policy-graph__legend-dot" style={{ background: '#007a5a' }} />
+            Healthy
+          </span>
+        </div>
+        <div className="mc-policy-graph__zoom" role="group" aria-label="Zoom controls">
+          <button
+            type="button"
+            className="mc-policy-graph__zoom-btn"
+            onClick={handleZoomOut}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="mc-policy-graph__zoom-level"
+            onClick={handleZoomReset}
+            aria-label={`Reset zoom (currently ${Math.round(zoom * 100)} percent)`}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            className="mc-policy-graph__zoom-btn"
+            onClick={handleZoomIn}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+        </div>
       </div>
       <div className="mc-policy-graph__scroller">
         <svg
-          width={W}
-          height={H}
+          viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+          width={VIEW_W * zoom}
+          height={VIEW_H * zoom}
           className="mc-policy-graph__svg"
           role="img"
           aria-label={`Policy impact graph for ${policy.ref}`}
         >
-          {/* edges drawn first so labels overlay them.
-              Edge labels are pinned to the column gap, centered on the
-              source/target node's Y. This keeps every pill in a clean strip
-              that has no other text in it (cohort/agent names live below
-              the nodes), so labels never overlap node labels. */}
+          {/* edges drawn first so labels overlay them. */}
           {cohorts.map(({ cohort, count }, i) => {
             const y = cohortYs[i]
             const stroke = severityStroke(cohort.severity)
-            const width = 1.5 + (count / maxEdge) * 4
+            const width = 1.25 + (count / maxEdge) * 3
             const startX = COL_X.cohort + COHORT_R
             const endX = COL_X.policy - POLICY_W / 2
             const path = curve(startX, y, endX, policyY)
             const labelX = (startX + endX) / 2
             return (
               <g key={`ce-${cohort.id}`}>
-                <path d={path} stroke={stroke} strokeWidth={width} fill="none" opacity={0.7} strokeLinecap="round" />
-                <EdgeLabel x={labelX} y={y} text={plural(count, 'hit', 'hits')} color={stroke} />
+                <path
+                  d={path}
+                  stroke={stroke}
+                  strokeWidth={width}
+                  fill="none"
+                  opacity={0.55}
+                  strokeLinecap="round"
+                />
+                <EdgeLabel x={labelX} y={y} text={String(count)} color={stroke} />
               </g>
             )
           })}
@@ -122,15 +159,22 @@ export function PolicyImpactGraph({ policyId }: { policyId: PolicyId }) {
           {agents.map(({ agent, count }, i) => {
             const y = agentYs[i]
             const stroke = severityStroke(agent.status)
-            const width = 1.5 + (count / maxEdge) * 4
+            const width = 1.25 + (count / maxEdge) * 3
             const startX = COL_X.policy + POLICY_W / 2
             const endX = COL_X.agent - AGENT_W / 2
             const path = curve(startX, policyY, endX, y)
             const labelX = (startX + endX) / 2
             return (
               <g key={`ae-${agent.id}`}>
-                <path d={path} stroke={stroke} strokeWidth={width} fill="none" opacity={0.7} strokeLinecap="round" />
-                <EdgeLabel x={labelX} y={y} text={plural(count, 'route', 'routes')} color={stroke} />
+                <path
+                  d={path}
+                  stroke={stroke}
+                  strokeWidth={width}
+                  fill="none"
+                  opacity={0.55}
+                  strokeLinecap="round"
+                />
+                <EdgeLabel x={labelX} y={y} text={String(count)} color={stroke} />
               </g>
             )
           })}
@@ -143,16 +187,10 @@ export function PolicyImpactGraph({ policyId }: { policyId: PolicyId }) {
             <AgentNode key={agent.id} agent={agent} x={COL_X.agent} y={agentYs[i]} />
           ))}
 
-          {/* column headers */}
-          <text x={COL_X.cohort} y={42} fontSize="16" fontWeight="700" fill="#1d1c1d" textAnchor="middle" letterSpacing="1.6">
-            USER COHORTS
-          </text>
-          <text x={COL_X.policy} y={42} fontSize="16" fontWeight="700" fill="#1d1c1d" textAnchor="middle" letterSpacing="1.6">
-            POLICY
-          </text>
-          <text x={COL_X.agent} y={42} fontSize="16" fontWeight="700" fill="#1d1c1d" textAnchor="middle" letterSpacing="1.6">
-            AGENTS
-          </text>
+          {/* slim column captions, top-aligned */}
+          <ColumnCaption x={COL_X.cohort} text="Cohorts" />
+          <ColumnCaption x={COL_X.policy} text="Policy" />
+          <ColumnCaption x={COL_X.agent} text="Agents" />
         </svg>
       </div>
     </div>
@@ -171,11 +209,26 @@ function curve(x1: number, y1: number, x2: number, y2: number) {
   return `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
 }
 
+function ColumnCaption({ x, text }: { x: number; text: string }) {
+  return (
+    <text
+      x={x}
+      y={36}
+      fontSize="12"
+      fontWeight="600"
+      fill="#616061"
+      textAnchor="middle"
+      letterSpacing="1.4"
+    >
+      {text.toUpperCase()}
+    </text>
+  )
+}
+
 function EdgeLabel({ x, y, text, color }: { x: number; y: number; text: string; color: string }) {
-  // 14px font, ~7.6px per char. Pad horizontal generously.
-  const padX = 12
-  const w = text.length * 7.6 + padX * 2
-  const h = 26
+  // Numeric-only label: small circular pill.
+  const w = Math.max(28, text.length * 8 + 14)
+  const h = 22
   return (
     <g>
       <rect
@@ -186,10 +239,17 @@ function EdgeLabel({ x, y, text, color }: { x: number; y: number; text: string; 
         rx={h / 2}
         fill="#ffffff"
         stroke={color}
-        strokeOpacity={0.45}
-        strokeWidth={1.2}
+        strokeOpacity={0.4}
+        strokeWidth={1}
       />
-      <text x={x} y={y + 5} fontSize="14" fill={color} fontWeight="700" textAnchor="middle">
+      <text
+        x={x}
+        y={y + 4}
+        fontSize="12"
+        fill={color}
+        fontWeight="700"
+        textAnchor="middle"
+      >
         {text}
       </text>
     </g>
@@ -201,24 +261,42 @@ function CohortNode({ cohort, x, y }: { cohort: Cohort; x: number; y: number }) 
   const stroke = severityStroke(cohort.severity)
   return (
     <g>
-      <circle cx={x} cy={y} r={COHORT_R} fill={fill} stroke={stroke} strokeWidth={2} />
-      <text x={x} y={y + 7} fontSize="22" fontWeight="700" fill={stroke} textAnchor="middle">
+      <circle cx={x} cy={y} r={COHORT_R} fill={fill} stroke={stroke} strokeWidth={1.75} />
+      <text
+        x={x}
+        y={y + 6}
+        fontSize="18"
+        fontWeight="700"
+        fill={stroke}
+        textAnchor="middle"
+      >
         {cohort.exposedPerHour}
       </text>
-      <text x={x} y={y + COHORT_R + 22} fontSize="15" fontWeight="700" fill="#1d1c1d" textAnchor="middle">
+      <text
+        x={x}
+        y={y + COHORT_R + 18}
+        fontSize="13"
+        fontWeight="600"
+        fill="#1d1c1d"
+        textAnchor="middle"
+      >
         {cohort.label}
-      </text>
-      <text x={x} y={y + COHORT_R + 40} fontSize="14" fill="#454245" textAnchor="middle">
-        {cohort.scope.split(' · ').slice(0, 2).join(' · ')}
-      </text>
-      <text x={x} y={y + COHORT_R + 56} fontSize="14" fill="#616061" textAnchor="middle">
-        users/hr exposed
       </text>
     </g>
   )
 }
 
-function PolicyNode({ x, y, ref_, title }: { x: number; y: number; ref_: string; title: string }) {
+function PolicyNode({
+  x,
+  y,
+  ref_,
+  title,
+}: {
+  x: number
+  y: number
+  ref_: string
+  title: string
+}) {
   return (
     <g>
       <rect
@@ -226,15 +304,15 @@ function PolicyNode({ x, y, ref_, title }: { x: number; y: number; ref_: string;
         y={y - POLICY_H / 2}
         width={POLICY_W}
         height={POLICY_H}
-        rx={12}
+        rx={10}
         fill="#eef4fb"
         stroke="#1264a3"
-        strokeWidth={2}
+        strokeWidth={1.5}
       />
       <text
         x={x}
         y={y - 4}
-        fontSize="16"
+        fontSize="13"
         fontWeight="700"
         fill="#1264a3"
         textAnchor="middle"
@@ -242,8 +320,8 @@ function PolicyNode({ x, y, ref_, title }: { x: number; y: number; ref_: string;
       >
         {ref_}
       </text>
-      <text x={x} y={y + 20} fontSize="14" fill="#1264a3" textAnchor="middle">
-        {title}
+      <text x={x} y={y + 16} fontSize="13" fill="#1264a3" textAnchor="middle">
+        {truncate(title, 32)}
       </text>
     </g>
   )
@@ -259,19 +337,30 @@ function AgentNode({ agent, x, y }: { agent: AgentRef; x: number; y: number }) {
         y={y - AGENT_H / 2}
         width={AGENT_W}
         height={AGENT_H}
-        rx={10}
+        rx={8}
         fill={fill}
         stroke={stroke}
-        strokeWidth={2}
+        strokeWidth={1.5}
       />
-      <text x={x} y={y + 4} fontSize="16" fontWeight="700" fill={stroke} textAnchor="middle">
+      <text
+        x={x}
+        y={y + 4}
+        fontSize="13"
+        fontWeight="700"
+        fill={stroke}
+        textAnchor="middle"
+      >
         {agent.cluster}
       </text>
-      <text x={x} y={y + 22} fontSize="14" fill={stroke} textAnchor="middle">
-        cluster
-      </text>
-      <text x={x} y={y + AGENT_H / 2 + 22} fontSize="15" fontWeight="700" fill="#1d1c1d" textAnchor="middle">
-        {truncate(agent.name, 22)}
+      <text
+        x={x}
+        y={y + AGENT_H / 2 + 16}
+        fontSize="12"
+        fontWeight="500"
+        fill="#454245"
+        textAnchor="middle"
+      >
+        {truncate(agent.name, 18)}
       </text>
     </g>
   )

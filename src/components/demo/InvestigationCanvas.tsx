@@ -40,8 +40,6 @@ export function phaseForStepId(stepId: string | undefined): ServicePhase {
       return 'retraining'
     case 'step-16':
     case 'step-17':
-    case 'step-18':
-    case 'step-19':
       return 'retrain-complete'
     case 'step-20':
     case 'step-21':

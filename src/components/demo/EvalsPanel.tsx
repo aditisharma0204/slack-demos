@@ -6,9 +6,38 @@
  * and settle into a final pass rate when phase becomes 'retrain-complete'.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+
+import { PrimaryButton, SecondaryButton, TextLinkButton } from '@/components/ui/DesignSystemButtons'
 
 import type { ServicePhase } from './ServiceGraphCanvas'
+
+/**
+ * Review decision for a flagged case.
+ * - 'pending': not yet reviewed (red row, Review CTA visible)
+ * - 'accepted': reviewer overrides the flag — agent's response was correct
+ *               (row turns green, pass rate climbs to 100%)
+ * - 'kept': reviewer acknowledges the flag as a known issue
+ *           (row settles to a neutral warm state, pass rate stays at 98.4%)
+ */
+type ReviewDecision = 'pending' | 'accepted' | 'kept'
+
+/**
+ * Synthetic detail for the single flagged conversational-flow case.
+ * The reviewer needs enough context to decide without leaving the canvas:
+ * the prompt, the expected behavior, what the agent actually said, and the
+ * policy slice that flagged it.
+ */
+const FLAGGED_CASE = {
+  id: 'CF-031',
+  prompt: 'I want to swap my order for a different size — same price, just M instead of L.',
+  expected:
+    'Confirm the swap is in-policy (same SKU family, same price), reserve the new size, and hand off to fulfillment for the relabel.',
+  actual:
+    'Acknowledged the request and offered a 10% loyalty credit toward a future order before completing the swap.',
+  policySlice: 'POL-AGT-DOMAIN-REM-03 · off-topic upsell during in-flight order edit',
+  capturedFrom: 'Production session · 2 days ago',
+}
 
 type TestCategory = {
   id: string
@@ -72,8 +101,31 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
   const [rows, setRows] = useState<RowState[]>(() =>
     phase === 'retrain-complete' ? completedRows() : initialRows()
   )
+  const [reviewDecision, setReviewDecision] = useState<ReviewDecision>('pending')
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const isRetraining = phase === 'retraining'
   const isComplete = phase === 'retrain-complete'
+
+  // Reset the review state whenever we leave / re-enter the retrain-complete phase
+  // so the demo restarts clean if the reviewer steps backward through the flow.
+  useEffect(() => {
+    if (!isComplete) {
+      setReviewDecision('pending')
+      setReviewModalOpen(false)
+    }
+  }, [isComplete])
+
+  const handleOpenReview = useCallback(() => setReviewModalOpen(true), [])
+  const handleCloseReview = useCallback(() => setReviewModalOpen(false), [])
+  const handleAccept = useCallback(() => {
+    setReviewDecision('accepted')
+    setReviewModalOpen(false)
+  }, [])
+  const handleKeep = useCallback(() => {
+    setReviewDecision('kept')
+    setReviewModalOpen(false)
+  }, [])
+  const handleUndo = useCallback(() => setReviewDecision('pending'), [])
 
   useEffect(() => {
     if (!isRetraining) {
@@ -130,7 +182,11 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
   }, [isRetraining, isComplete])
 
   const totalDone = rows.reduce((s, r) => s + r.done, 0)
-  const totalFailed = rows.reduce((s, r) => s + r.failed, 0)
+  const rawTotalFailed = rows.reduce((s, r) => s + r.failed, 0)
+  // Once the reviewer accepts the flagged response, the override removes it
+  // from the failure count for the run summary (it's still kept in the audit
+  // trail — see `reviewDecision` for the surface state).
+  const totalFailed = isComplete && reviewDecision === 'accepted' ? 0 : rawTotalFailed
   const totalPassed = totalDone - totalFailed
   const overallProgress = totalDone / TOTAL_TESTS
   const livePassRate = totalDone > 0 ? (totalPassed / totalDone) * 100 : 0
@@ -177,12 +233,36 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
       )}
 
       <div className="flex-1 min-h-0 overflow-auto px-4 py-3 space-y-2" style={{ backgroundColor: '#fafafa' }}>
-        {TESTS.map((test, idx) => (
-          <EvalRow key={test.id} test={test} state={rows[idx]} />
-        ))}
+        {TESTS.map((test, idx) => {
+          const isFlaggedRow = test.id === 'conversational-flow'
+          return (
+            <EvalRow
+              key={test.id}
+              test={test}
+              state={rows[idx]}
+              reviewDecision={isFlaggedRow ? reviewDecision : 'pending'}
+              onReview={isFlaggedRow && isComplete ? handleOpenReview : undefined}
+              onUndoReview={isFlaggedRow && isComplete ? handleUndo : undefined}
+            />
+          )
+        })}
 
-        {isComplete && <CompletionSummary totalPassed={totalPassed} totalFailed={totalFailed} />}
+        {isComplete && (
+          <CompletionSummary
+            totalPassed={totalPassed}
+            totalFailed={totalFailed}
+            reviewDecision={reviewDecision}
+          />
+        )}
       </div>
+
+      {reviewModalOpen && (
+        <FlaggedCaseReviewModal
+          onClose={handleCloseReview}
+          onAccept={handleAccept}
+          onKeep={handleKeep}
+        />
+      )}
     </div>
   )
 }
@@ -264,24 +344,13 @@ function CoverageCards({
         borderBottom: '1px solid var(--slack-border)',
       }}
     >
-      <div className="flex items-baseline justify-between gap-3 mb-2">
+      <div className="mb-2">
         <h4
           className="text-[13px] font-extrabold m-0"
           style={{ color: 'var(--slack-text)' }}
         >
           Eval suite coverage
         </h4>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center px-2.5 py-1 rounded text-[12px] font-semibold border transition hover:bg-[var(--slack-btn-hover-bg)] cursor-pointer"
-          style={{
-            backgroundColor: 'var(--slack-btn-bg)',
-            color: 'var(--slack-text)',
-            borderColor: 'var(--slack-btn-secondary-border)',
-          }}
-        >
-          View library
-        </button>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {COVERAGE.map((c) => {
@@ -415,27 +484,62 @@ function CoverageStatusDot({ status }: { status: 'running' | 'clean' | 'flagged'
   )
 }
 
-function EvalRow({ test, state }: { test: TestCategory; state: RowState }) {
+function EvalRow({
+  test,
+  state,
+  reviewDecision,
+  onReview,
+  onUndoReview,
+}: {
+  test: TestCategory
+  state: RowState
+  reviewDecision: ReviewDecision
+  onReview?: () => void
+  onUndoReview?: () => void
+}) {
   const isQueued = state.status === 'queued'
   const isRunning = state.status === 'running'
   const isPassed = state.status === 'passed'
   const isFailed = state.status === 'failed'
 
-  const borderColor = isFailed
-    ? 'var(--mc-critical-soft-border)'
-    : isPassed
-      ? '#b8e0ce'
-      : isRunning
-        ? '#cde3f0'
-        : 'var(--slack-border)'
+  // Reviewed states only apply to a failed row whose flag has been resolved.
+  const isReviewedAccepted = isFailed && reviewDecision === 'accepted'
+  const isReviewedKept = isFailed && reviewDecision === 'kept'
+  const isPendingReview = isFailed && reviewDecision === 'pending'
 
-  const bg = isFailed
-    ? 'var(--mc-critical-soft-bg)'
-    : isPassed
-      ? '#f0faf6'
-      : isRunning
-        ? '#f3f9fd'
-        : 'var(--slack-pane-bg)'
+  // Color treatment shifts after review: accepted reads as a clean pass; kept
+  // reads as acknowledged-but-warm (no longer alarming red, but distinct from
+  // a clean pass so it stays visible in audit).
+  const borderColor = isReviewedAccepted
+    ? '#b8e0ce'
+    : isReviewedKept
+      ? 'var(--slack-border)'
+      : isFailed
+        ? 'var(--mc-critical-soft-border)'
+        : isPassed
+          ? '#b8e0ce'
+          : isRunning
+            ? '#cde3f0'
+            : 'var(--slack-border)'
+
+  const bg = isReviewedAccepted
+    ? '#f0faf6'
+    : isReviewedKept
+      ? 'var(--slack-pane-bg)'
+      : isFailed
+        ? 'var(--mc-critical-soft-bg)'
+        : isPassed
+          ? '#f0faf6'
+          : isRunning
+            ? '#f3f9fd'
+            : 'var(--slack-pane-bg)'
+
+  // Status icon swaps to a green check when accepted; kept stays as the red X
+  // (the failure happened, the reviewer just decided not to override it).
+  const iconStatus: RowState['status'] = isReviewedAccepted ? 'passed' : state.status
+
+  const passedCount = state.done - state.failed
+  const acceptedPassedCount = state.done
 
   return (
     <div
@@ -447,7 +551,7 @@ function EvalRow({ test, state }: { test: TestCategory; state: RowState }) {
         transition: 'border 0.3s ease, background-color 0.3s ease, opacity 0.3s ease',
       }}
     >
-      <StatusIcon status={state.status} />
+      <StatusIcon status={iconStatus} />
       <div className="flex-1 min-w-0">
         <div className="text-xs font-semibold m-0" style={{ color: 'var(--slack-text)' }}>
           {test.label}
@@ -456,9 +560,26 @@ function EvalRow({ test, state }: { test: TestCategory; state: RowState }) {
           {isQueued && 'Queued'}
           {isRunning && `Running… ${state.done}/${test.total} cases`}
           {isPassed && `${state.done}/${test.total} passed`}
-          {isFailed && `${state.done - state.failed}/${test.total} passed · ${state.failed} flagged for review`}
+          {isPendingReview && `${passedCount}/${test.total} passed · ${state.failed} flagged for review`}
+          {isReviewedAccepted &&
+            `${acceptedPassedCount}/${test.total} passed · 1 reviewed and accepted by you`}
+          {isReviewedKept &&
+            `${passedCount}/${test.total} passed · 1 flag acknowledged for next training round`}
         </div>
       </div>
+
+      {isPendingReview && onReview && (
+        <SecondaryButton onClick={onReview} className="h-7 px-2.5 text-[11px]">
+          Review
+        </SecondaryButton>
+      )}
+
+      {(isReviewedAccepted || isReviewedKept) && onUndoReview && (
+        <TextLinkButton variant="secondary" onClick={onUndoReview} className="text-[11px]">
+          Undo
+        </TextLinkButton>
+      )}
+
       <div className="text-[11px] font-mono tabular-nums shrink-0" style={{ color: 'var(--slack-msg-muted)' }}>
         {state.done}/{test.total}
       </div>
@@ -521,7 +642,28 @@ function StatusIcon({ status }: { status: RowState['status'] }) {
   )
 }
 
-function CompletionSummary({ totalPassed, totalFailed }: { totalPassed: number; totalFailed: number }) {
+function CompletionSummary({
+  totalPassed,
+  totalFailed,
+  reviewDecision,
+}: {
+  totalPassed: number
+  totalFailed: number
+  reviewDecision: ReviewDecision
+}) {
+  // Body line reflects what the reviewer has done with the flagged case.
+  const bodyLine =
+    reviewDecision === 'accepted'
+      ? `${totalPassed} passed · 1 reviewed and accepted by you · 0 policy violations on the held-out test slice`
+      : reviewDecision === 'kept'
+        ? `${totalPassed} passed · ${totalFailed} flag acknowledged for next training round · 0 policy violations on the held-out test slice`
+        : `${totalPassed} passed · ${totalFailed} flagged for review · 0 policy violations on the held-out test slice`
+
+  const footerLine =
+    reviewDecision === 'pending'
+      ? 'Resolve the flagged case above, then deploy from the chat thread on the right.'
+      : 'Ready to deploy from the chat thread on the right.'
+
   return (
     <div
       className="mt-3 rounded-lg px-4 py-3"
@@ -537,11 +679,182 @@ function CompletionSummary({ totalPassed, totalFailed }: { totalPassed: number; 
         </span>
       </div>
       <p className="text-xs m-0" style={{ color: 'var(--slack-text)' }}>
-        {totalPassed} passed · {totalFailed} flagged for review · 0 policy violations on the held-out test slice
+        {bodyLine}
       </p>
       <p className="text-[11px] m-0 mt-1" style={{ color: 'var(--slack-msg-muted)' }}>
-        Ready to deploy from the chat thread on the right.
+        {footerLine}
       </p>
+    </div>
+  )
+}
+
+/**
+ * FlaggedCaseReviewModal — overlay that lets the reviewer act on the single
+ * flagged conversational-flow case without leaving the canvas.
+ *
+ * The two terminal actions are deliberately framed in operator language:
+ *  • "Accept response" overrides the flag (the agent was correct here).
+ *  • "Keep flag" acknowledges the failure and ships it to the next training
+ *     round without overriding the eval signal.
+ */
+function FlaggedCaseReviewModal({
+  onClose,
+  onAccept,
+  onKeep,
+}: {
+  onClose: () => void
+  onAccept: () => void
+  onKeep: () => void
+}) {
+  // Esc closes the modal — same convention as the agent hub modal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[5000] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="w-full rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        style={{
+          maxWidth: 560,
+          maxHeight: '88vh',
+          backgroundColor: 'var(--slack-pane-bg)',
+          border: '1px solid var(--slack-border)',
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="flagged-case-review-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header
+          className="px-5 py-3.5 border-b flex-shrink-0"
+          style={{ borderColor: 'var(--slack-border)' }}
+        >
+          <div className="min-w-0">
+            <div
+              className="text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              Flagged case · {FLAGGED_CASE.id}
+            </div>
+            <h2
+              id="flagged-case-review-title"
+              className="text-[15px] font-extrabold m-0 mt-0.5"
+              style={{ color: 'var(--slack-text)' }}
+            >
+              Review conversational-flow flag
+            </h2>
+            <p
+              className="text-[11px] m-0 mt-0.5"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              {FLAGGED_CASE.capturedFrom} · {FLAGGED_CASE.policySlice}
+            </p>
+          </div>
+        </header>
+
+        <div className="px-5 py-4 overflow-auto flex-1 min-h-0 space-y-3.5">
+          <CaseSection label="User prompt" tone="neutral">
+            {FLAGGED_CASE.prompt}
+          </CaseSection>
+          <CaseSection label="Expected behavior" tone="neutral">
+            {FLAGGED_CASE.expected}
+          </CaseSection>
+          <CaseSection label="Agent response" tone="critical">
+            {FLAGGED_CASE.actual}
+          </CaseSection>
+
+          <div
+            className="rounded-md px-3 py-2.5 flex items-start gap-2.5"
+            style={{
+              border: '1px solid var(--slack-border)',
+              backgroundColor: '#fafafa',
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              style={{ marginTop: 2, color: 'var(--slack-msg-muted)' }}
+            >
+              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+              <path
+                d="M8 5v3.5M8 11h.01"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            <p
+              className="text-[11px] leading-relaxed m-0"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              Accepting the response will override the flag in the run summary and bump the
+              pass rate to 100% for this build. Keeping the flag preserves the eval signal
+              and queues the case for the next training round. Either decision is logged
+              against your Slack actor.
+            </p>
+          </div>
+        </div>
+
+        <footer
+          className="flex items-center justify-between gap-2 px-5 py-3 border-t flex-shrink-0"
+          style={{ borderColor: 'var(--slack-border)' }}
+        >
+          <TextLinkButton variant="secondary" onClick={onClose}>
+            Cancel
+          </TextLinkButton>
+          <div className="flex items-center gap-2">
+            <SecondaryButton onClick={onKeep}>Keep flag</SecondaryButton>
+            <PrimaryButton onClick={onAccept}>Accept response</PrimaryButton>
+          </div>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+function CaseSection({
+  label,
+  tone,
+  children,
+}: {
+  label: string
+  tone: 'neutral' | 'critical'
+  children: ReactNode
+}) {
+  const borderColor =
+    tone === 'critical' ? 'var(--mc-critical-soft-border)' : 'var(--slack-border)'
+  const bg = tone === 'critical' ? 'var(--mc-critical-soft-bg)' : 'var(--slack-pane-bg)'
+  return (
+    <div>
+      <div
+        className="text-[10px] font-semibold uppercase tracking-wide mb-1"
+        style={{ color: 'var(--slack-msg-muted)' }}
+      >
+        {label}
+      </div>
+      <div
+        className="rounded-md px-3 py-2.5 text-[12.5px] leading-relaxed"
+        style={{
+          border: `1px solid ${borderColor}`,
+          backgroundColor: bg,
+          color: 'var(--slack-text)',
+        }}
+      >
+        {children}
+      </div>
     </div>
   )
 }
