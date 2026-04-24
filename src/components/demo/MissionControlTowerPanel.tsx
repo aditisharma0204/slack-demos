@@ -461,12 +461,10 @@ function ObservabilityKpiStrip({
   const kpis = set[scope]
   return (
     <section className="mc-galileo-section" aria-labelledby="mc-galileo-obs-heading">
-      <header className="mc-galileo-section-meta mc-galileo-section-meta--with-action">
-        <div className="mc-galileo-section-meta__left">
-          <span className="mc-galileo-num">02</span>
-          <span className="mc-galileo-kicker" id="mc-galileo-obs-heading">AI Observability</span>
-          <span className="mc-galileo-loc">Production traces · last {scope}</span>
-        </div>
+      <header className="mc-section-head">
+        <h3 className="mc-section-head__title" id="mc-galileo-obs-heading">
+          Agent performance
+        </h3>
         <TimeScopeToggle value={scope} onChange={onScopeChange} label="Observability time scope" />
       </header>
       <div className="mc-kpi-grid">
@@ -501,13 +499,15 @@ function ProtectionCard({ fleetState = 'active_incident' }: { fleetState?: Fleet
   const headlineBlocked = isAllClear ? 9 : 16
   return (
     <section className="mc-galileo-card" aria-labelledby="mc-galileo-protect-heading">
-      <header className="mc-galileo-section-meta">
-        <span className="mc-galileo-num">03</span>
-        <span className="mc-galileo-kicker" id="mc-galileo-protect-heading">Real-time Protection</span>
+      <header className="mc-section-head">
+        <h3 className="mc-section-head__title" id="mc-galileo-protect-heading">
+          Real-time protection
+        </h3>
+        <span className="mc-section-head__meta">Last 24 hours</span>
       </header>
       <div className="mc-galileo-card-headline">
         <span className="mc-galileo-card-headline__v">{headlineBlocked}</span>
-        <span className="mc-galileo-card-headline__l">risks blocked in production · last 24h</span>
+        <span className="mc-galileo-card-headline__l">risks blocked</span>
       </div>
       <ul className="mc-protect-list">
         {rulesets.map((r) => {
@@ -554,13 +554,15 @@ function EvaluationCard({ gradId }: { gradId: string }) {
 
   return (
     <section className="mc-galileo-card" aria-labelledby="mc-galileo-eval-heading">
-      <header className="mc-galileo-section-meta">
-        <span className="mc-galileo-num">04</span>
-        <span className="mc-galileo-kicker" id="mc-galileo-eval-heading">AI Evaluation</span>
+      <header className="mc-section-head">
+        <h3 className="mc-section-head__title" id="mc-galileo-eval-heading">
+          Quality evals
+        </h3>
+        <span className="mc-section-head__meta">Updated 12m ago</span>
       </header>
       <div className="mc-galileo-card-headline">
         <span className="mc-galileo-card-headline__v" style={{ color: 'var(--mc-success)' }}>98.4%</span>
-        <span className="mc-galileo-card-headline__l">eval gate pass rate · last run 12m ago</span>
+        <span className="mc-galileo-card-headline__l">passing across 124 cases</span>
       </div>
       <svg className="mc-eval-chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden>
         <defs>

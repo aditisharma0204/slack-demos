@@ -110,24 +110,27 @@ function fillFor(tone: PermBar['tone']) {
 export function PermissionsEvalCard({ fleetState = 'active_incident' }: { fleetState?: FleetState }) {
   const data = datasetFor(fleetState)
   const totalCases = data.bars.reduce((acc, b) => acc + b.cases, 0)
+  const totalPolicies = data.bars.length
   const failing = data.bars.filter((b) => b.tone === 'critical').length
   const headlineColor = failing > 0 ? 'var(--mc-critical)' : 'var(--mc-success)'
-  const headlineText = failing > 0 ? `${failing} failing` : 'All passing'
+  const headlineValue =
+    failing > 0 ? `${failing} of ${totalPolicies}` : `${totalPolicies} of ${totalPolicies}`
+  const headlineLabel = failing > 0 ? 'policies failing' : 'policies passing'
 
   return (
     <section className="mc-galileo-card" aria-labelledby="mc-galileo-perm-heading">
-      <header className="mc-galileo-section-meta">
-        <span className="mc-galileo-num">05</span>
-        <span className="mc-galileo-kicker" id="mc-galileo-perm-heading">
-          Permissions Evals
-        </span>
+      <header className="mc-section-head">
+        <h3 className="mc-section-head__title" id="mc-galileo-perm-heading">
+          Permissions evals
+        </h3>
+        <span className="mc-section-head__meta">Updated {data.lastRunAgo}</span>
       </header>
       <div className="mc-galileo-card-headline">
         <span className="mc-galileo-card-headline__v" style={{ color: headlineColor }}>
-          {headlineText}
+          {headlineValue}
         </span>
         <span className="mc-galileo-card-headline__l">
-          policy gate · {totalCases} cases · last suite {data.lastRunAgo}
+          {headlineLabel} across {totalCases} cases
         </span>
       </div>
       <div className="mc-perm-bars">
