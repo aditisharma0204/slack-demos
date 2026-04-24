@@ -273,7 +273,7 @@ export function ReferencePage() {
             What to do next
           </h2>
           <p className="text-base mb-4" style={mutedStyle}>
-            Go to <strong style={textStyle}>Create new story</strong>, write your story there, then use <strong style={textStyle}>Copy Demo Prompt</strong> and paste it in Cursor. Cursor will create the demo for you.
+            Go to <strong style={textStyle}>Create new story</strong>, write your story there, then use <strong style={textStyle}>Copy demo prompt</strong> and paste it in Cursor. Cursor will create the demo for you.
           </p>
           <PrimaryLinkLarge to="/canvas">
             Create new story

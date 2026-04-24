@@ -145,7 +145,7 @@ export function FoundationDesignSystemPage() {
               </p>
               <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
                 <PrimaryButtonLarge>Primary</PrimaryButtonLarge>
-                <NegativeButtonLarge>Negative Button</NegativeButtonLarge>
+                <NegativeButtonLarge>Negative</NegativeButtonLarge>
                 <SecondaryButtonLarge>Secondary</SecondaryButtonLarge>
                 <DisabledButtonLarge>Disabled</DisabledButtonLarge>
                 <TextLinkButton variant="primary" size="large">
@@ -174,7 +174,7 @@ export function FoundationDesignSystemPage() {
               </p>
               <div className="rounded-lg border p-6 flex flex-wrap gap-4 items-center" style={surfaceStyle}>
                 <PrimaryButton>Primary</PrimaryButton>
-                <NegativeButton>Negative Button</NegativeButton>
+                <NegativeButton>Negative</NegativeButton>
                 <SecondaryButton className="whitespace-nowrap">Secondary</SecondaryButton>
                 <DisabledButton>Disabled</DisabledButton>
                 <TextLinkButton variant="primary">Primary link</TextLinkButton>

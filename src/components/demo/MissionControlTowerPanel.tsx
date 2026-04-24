@@ -406,43 +406,43 @@ type KpiScopeSet = Record<TimeScope, KpiSpec[]>
 
 const OBS_KPIS_INCIDENT: KpiScopeSet = {
   '1D': [
-    { label: 'Tool Selection Quality', value: '81.2%', trendPct: -2.1, tone: 'warn', data: [78, 80, 82, 81, 83, 79, 82, 81, 80, 81, 79, 78, 80, 81] },
-    { label: 'Context Adherence', value: '73.6%', trendPct: -8.4, tone: 'critical', data: [88, 86, 84, 82, 80, 78, 76, 74, 72, 73, 72, 73, 74, 73] },
-    { label: 'Agent Action Completion', value: '49.8%', trendPct: -22.1, tone: 'critical', data: [88, 84, 78, 70, 60, 55, 50, 48, 50, 49, 50, 48, 50, 49] },
-    { label: 'Time to First Token', value: '743 ms', trendPct: 18.2, tone: 'warn', higherIsWorse: true, data: [320, 380, 420, 480, 540, 600, 680, 720, 740, 720, 740, 750, 730, 740] },
+    { label: 'Tool selection quality', value: '81.2%', trendPct: -2.1, tone: 'warn', data: [78, 80, 82, 81, 83, 79, 82, 81, 80, 81, 79, 78, 80, 81] },
+    { label: 'Context adherence', value: '73.6%', trendPct: -8.4, tone: 'critical', data: [88, 86, 84, 82, 80, 78, 76, 74, 72, 73, 72, 73, 74, 73] },
+    { label: 'Agent action completion', value: '49.8%', trendPct: -22.1, tone: 'critical', data: [88, 84, 78, 70, 60, 55, 50, 48, 50, 49, 50, 48, 50, 49] },
+    { label: 'Time to first token', value: '743 ms', trendPct: 18.2, tone: 'warn', higherIsWorse: true, data: [320, 380, 420, 480, 540, 600, 680, 720, 740, 720, 740, 750, 730, 740] },
   ],
   '7D': [
-    { label: 'Tool Selection Quality', value: '83.8%', trendPct: -0.6, tone: 'warn', data: [86, 85, 84, 84, 83, 82, 84, 83, 84, 83, 84, 83, 84, 84] },
-    { label: 'Context Adherence', value: '82.1%', trendPct: -3.4, tone: 'warn', data: [90, 89, 88, 87, 85, 84, 82, 83, 82, 81, 82, 82, 82, 82] },
-    { label: 'Agent Action Completion', value: '71.2%', trendPct: -8.1, tone: 'warn', data: [82, 80, 78, 76, 74, 72, 70, 71, 70, 71, 72, 71, 72, 71] },
-    { label: 'Time to First Token', value: '612 ms', trendPct: 6.1, tone: 'warn', higherIsWorse: true, data: [560, 580, 600, 610, 620, 600, 615, 612, 620, 612, 615, 612, 612, 612] },
+    { label: 'Tool selection quality', value: '83.8%', trendPct: -0.6, tone: 'warn', data: [86, 85, 84, 84, 83, 82, 84, 83, 84, 83, 84, 83, 84, 84] },
+    { label: 'Context adherence', value: '82.1%', trendPct: -3.4, tone: 'warn', data: [90, 89, 88, 87, 85, 84, 82, 83, 82, 81, 82, 82, 82, 82] },
+    { label: 'Agent action completion', value: '71.2%', trendPct: -8.1, tone: 'warn', data: [82, 80, 78, 76, 74, 72, 70, 71, 70, 71, 72, 71, 72, 71] },
+    { label: 'Time to first token', value: '612 ms', trendPct: 6.1, tone: 'warn', higherIsWorse: true, data: [560, 580, 600, 610, 620, 600, 615, 612, 620, 612, 615, 612, 612, 612] },
   ],
   '30D': [
-    { label: 'Tool Selection Quality', value: '86.4%', trendPct: 1.2, tone: 'success', data: [85, 86, 86, 87, 86, 87, 86, 87, 86, 86, 87, 86, 87, 86] },
-    { label: 'Context Adherence', value: '88.2%', trendPct: 0.4, tone: 'success', data: [88, 88, 88, 89, 88, 88, 89, 88, 88, 88, 89, 88, 88, 88] },
-    { label: 'Agent Action Completion', value: '83.6%', trendPct: -0.8, tone: 'warn', data: [85, 85, 84, 84, 84, 83, 84, 83, 84, 84, 83, 84, 83, 84] },
-    { label: 'Time to First Token', value: '548 ms', trendPct: 0.9, tone: 'success', higherIsWorse: true, data: [550, 545, 548, 550, 545, 548, 550, 548, 548, 545, 548, 548, 548, 548] },
+    { label: 'Tool selection quality', value: '86.4%', trendPct: 1.2, tone: 'success', data: [85, 86, 86, 87, 86, 87, 86, 87, 86, 86, 87, 86, 87, 86] },
+    { label: 'Context adherence', value: '88.2%', trendPct: 0.4, tone: 'success', data: [88, 88, 88, 89, 88, 88, 89, 88, 88, 88, 89, 88, 88, 88] },
+    { label: 'Agent action completion', value: '83.6%', trendPct: -0.8, tone: 'warn', data: [85, 85, 84, 84, 84, 83, 84, 83, 84, 84, 83, 84, 83, 84] },
+    { label: 'Time to first token', value: '548 ms', trendPct: 0.9, tone: 'success', higherIsWorse: true, data: [550, 545, 548, 550, 545, 548, 550, 548, 548, 545, 548, 548, 548, 548] },
   ],
 }
 
 const OBS_KPIS_CLEAR: KpiScopeSet = {
   '1D': [
-    { label: 'Tool Selection Quality', value: '94.6%', trendPct: 0.8, tone: 'success', data: [93, 94, 94, 95, 94, 95, 94, 95, 95, 94, 95, 95, 95, 95] },
-    { label: 'Context Adherence', value: '96.2%', trendPct: 0.4, tone: 'success', data: [95, 96, 96, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
-    { label: 'Agent Action Completion', value: '92.4%', trendPct: 1.6, tone: 'success', data: [89, 90, 90, 91, 91, 92, 91, 92, 92, 92, 92, 92, 92, 92] },
-    { label: 'Time to First Token', value: '418 ms', trendPct: -3.2, tone: 'success', higherIsWorse: true, data: [430, 425, 425, 420, 420, 418, 418, 415, 418, 418, 418, 418, 418, 418] },
+    { label: 'Tool selection quality', value: '94.6%', trendPct: 0.8, tone: 'success', data: [93, 94, 94, 95, 94, 95, 94, 95, 95, 94, 95, 95, 95, 95] },
+    { label: 'Context adherence', value: '96.2%', trendPct: 0.4, tone: 'success', data: [95, 96, 96, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
+    { label: 'Agent action completion', value: '92.4%', trendPct: 1.6, tone: 'success', data: [89, 90, 90, 91, 91, 92, 91, 92, 92, 92, 92, 92, 92, 92] },
+    { label: 'Time to first token', value: '418 ms', trendPct: -3.2, tone: 'success', higherIsWorse: true, data: [430, 425, 425, 420, 420, 418, 418, 415, 418, 418, 418, 418, 418, 418] },
   ],
   '7D': [
-    { label: 'Tool Selection Quality', value: '93.8%', trendPct: 1.2, tone: 'success', data: [92, 93, 93, 93, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
-    { label: 'Context Adherence', value: '95.7%', trendPct: 0.6, tone: 'success', data: [95, 95, 95, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
-    { label: 'Agent Action Completion', value: '91.0%', trendPct: 0.9, tone: 'success', data: [90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91] },
-    { label: 'Time to First Token', value: '432 ms', trendPct: -1.4, tone: 'success', higherIsWorse: true, data: [440, 438, 435, 432, 432, 430, 432, 432, 432, 432, 432, 432, 432, 432] },
+    { label: 'Tool selection quality', value: '93.8%', trendPct: 1.2, tone: 'success', data: [92, 93, 93, 93, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
+    { label: 'Context adherence', value: '95.7%', trendPct: 0.6, tone: 'success', data: [95, 95, 95, 96, 95, 96, 96, 96, 96, 96, 96, 96, 96, 96] },
+    { label: 'Agent action completion', value: '91.0%', trendPct: 0.9, tone: 'success', data: [90, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91] },
+    { label: 'Time to first token', value: '432 ms', trendPct: -1.4, tone: 'success', higherIsWorse: true, data: [440, 438, 435, 432, 432, 430, 432, 432, 432, 432, 432, 432, 432, 432] },
   ],
   '30D': [
-    { label: 'Tool Selection Quality', value: '92.1%', trendPct: 0.5, tone: 'success', data: [91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92] },
-    { label: 'Context Adherence', value: '94.4%', trendPct: 0.2, tone: 'success', data: [94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
-    { label: 'Agent Action Completion', value: '89.2%', trendPct: 1.4, tone: 'success', data: [87, 88, 88, 88, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89] },
-    { label: 'Time to First Token', value: '448 ms', trendPct: -0.5, tone: 'success', higherIsWorse: true, data: [450, 450, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448] },
+    { label: 'Tool selection quality', value: '92.1%', trendPct: 0.5, tone: 'success', data: [91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92] },
+    { label: 'Context adherence', value: '94.4%', trendPct: 0.2, tone: 'success', data: [94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94, 94] },
+    { label: 'Agent action completion', value: '89.2%', trendPct: 1.4, tone: 'success', data: [87, 88, 88, 88, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89] },
+    { label: 'Time to first token', value: '448 ms', trendPct: -0.5, tone: 'success', higherIsWorse: true, data: [450, 450, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448] },
   ],
 }
 
@@ -1120,9 +1120,9 @@ type Usw7Agent = Usw7AgentEntry
 type DecisionMetric = { label: string; value: string; sub: string }
 
 const USW7_DECISION_METRICS: DecisionMetric[] = [
-  { label: 'Customer Affected', value: '420', sub: 'per hour' },
-  { label: 'Revenue At Risk', value: '$180K', sub: 'per hour exposure' },
-  { label: 'Trend', value: 'Low', sub: '+12 Warnings/min' },
+  { label: 'Customers affected', value: '420', sub: 'per hour' },
+  { label: 'Revenue at risk', value: '$180K', sub: 'per hour exposure' },
+  { label: 'Trend', value: 'Low', sub: '+12 warnings/min' },
 ]
 
 function AgentUSW7Detail({
@@ -1430,7 +1430,7 @@ function AgentHubModal({
           onClick={(e) => e.stopPropagation()}
         >
           <header className="flex items-center justify-between gap-3 px-5 py-3 border-b flex-shrink-0" style={{ borderColor: 'var(--slack-border)' }}>
-            <h2 className="text-base font-bold m-0" style={{ color: 'var(--slack-text)' }}>United States &mdash; Agent hubs &amp; coverage</h2>
+            <h2 className="text-base font-bold m-0" style={{ color: 'var(--slack-text)' }}>United States &mdash; agent hubs &amp; coverage</h2>
             <ModalCloseButton onClick={onClose} />
           </header>
           <AgentHubTopology onSelectUSW7={() => setView('usw7-detail')} />

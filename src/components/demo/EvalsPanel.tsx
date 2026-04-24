@@ -48,10 +48,10 @@ type TestCategory = {
 }
 
 const TESTS: TestCategory[] = [
-  { id: 'state-machine', label: 'State Machine Testing', total: 24, baselineFailures: 2 },
-  { id: 'input-validation', label: 'Input Validation Testing', total: 18, baselineFailures: 3 },
-  { id: 'conversational-flow', label: 'Conversational Flow Testing', total: 32, baselineFailures: 5 },
-  { id: 'stress', label: 'Stress Testing', total: 12, baselineFailures: 1 },
+  { id: 'state-machine', label: 'State machine testing', total: 24, baselineFailures: 2 },
+  { id: 'input-validation', label: 'Input validation testing', total: 18, baselineFailures: 3 },
+  { id: 'conversational-flow', label: 'Conversational flow testing', total: 32, baselineFailures: 5 },
+  { id: 'stress', label: 'Stress testing', total: 12, baselineFailures: 1 },
 ]
 
 const TOTAL_TESTS = TESTS.reduce((s, t) => s + t.total, 0)
@@ -73,9 +73,9 @@ type CoverageCategory = {
 }
 
 const COVERAGE: CoverageCategory[] = [
-  { id: 'safety', label: 'Safety & Compliance', total: 32, finalFailed: 0 },
-  { id: 'quality', label: 'Response Quality', total: 28, finalFailed: 0 },
-  { id: 'agentic', label: 'Agentic Behavior', total: 26, finalFailed: 1 },
+  { id: 'safety', label: 'Safety & compliance', total: 32, finalFailed: 0 },
+  { id: 'quality', label: 'Response quality', total: 28, finalFailed: 0 },
+  { id: 'agentic', label: 'Agentic behavior', total: 26, finalFailed: 1 },
 ]
 
 type RowState = {
@@ -605,7 +605,7 @@ function FlaggedCaseReviewModal({
                 className="text-[15px] font-extrabold leading-[22px] m-0"
                 style={{ color: 'var(--slack-text)' }}
               >
-                Review Conversational Flow Flag
+                Review conversational flow flag
               </h2>
               <p
                 className="text-[13px] font-bold leading-[18px] m-0 mt-1 flex items-center gap-2"
@@ -613,7 +613,7 @@ function FlaggedCaseReviewModal({
               >
                 <span>Production session</span>
                 <span aria-hidden>·</span>
-                <span>Flagged Case {FLAGGED_CASE.id}</span>
+                <span>Flagged case {FLAGGED_CASE.id}</span>
               </p>
             </div>
             {/* The Slack content-area selector in slack.css paints every raw
@@ -657,13 +657,13 @@ function FlaggedCaseReviewModal({
             className="rounded-lg p-4 flex flex-col gap-2"
             style={{ backgroundColor: 'var(--slack-msg-hover)' }}
           >
-            <CaseField label="User Prompt" tone="neutral">
+            <CaseField label="User prompt" tone="neutral">
               {FLAGGED_CASE.prompt}
             </CaseField>
-            <CaseField label="Expected Behavior" tone="neutral">
+            <CaseField label="Expected behavior" tone="neutral">
               {FLAGGED_CASE.expected}
             </CaseField>
-            <CaseField label="Agent Response" tone="critical">
+            <CaseField label="Agent response" tone="critical">
               {FLAGGED_CASE.actual}
             </CaseField>
 
@@ -685,7 +685,7 @@ function FlaggedCaseReviewModal({
             green. */}
         <footer className="flex items-center justify-end gap-3 px-7 py-5 flex-shrink-0">
           <SecondaryButton onClick={onKeep}>Keep flag</SecondaryButton>
-          <PrimaryButton onClick={onAccept}>Accept Response</PrimaryButton>
+          <PrimaryButton onClick={onAccept}>Accept response</PrimaryButton>
         </footer>
       </div>
     </div>

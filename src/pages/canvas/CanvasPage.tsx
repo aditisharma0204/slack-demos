@@ -118,11 +118,11 @@ export function CanvasPage() {
             className="mb-4 p-3 rounded-lg text-sm"
             style={{ backgroundColor: 'var(--slack-msg-hover)', color: 'var(--slack-text)' }}
           >
-            <strong>Editing story for:</strong> {state.demoTitle}. Update the story below, then click <strong>Copy Demo Prompt</strong> and paste in Cursor to regenerate the demo files.
+            <strong>Editing story for:</strong> {state.demoTitle}. Update the story below, then click <strong>Copy demo prompt</strong> and paste in Cursor to regenerate the demo files.
           </div>
         )}
         <p className="text-sm mb-4" style={{ color: 'var(--slack-msg-muted)' }}>
-          Write your story in paragraphs. Describe what happens—who does what, what they say, how the conversation flows. Set <strong>Created by</strong>, edit instructions (and Slack persona) if needed, then click Copy Demo Prompt and paste in Cursor to create the Slack demo.
+          Write your story in paragraphs. Describe what happens—who does what, what they say, how the conversation flows. Set <strong>Created by</strong>, edit instructions (and Slack persona) if needed, then click Copy demo prompt and paste in Cursor to create the Slack demo.
         </p>
 
         <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -208,7 +208,7 @@ export function CanvasPage() {
               color: '#ffffff',
             }}
           >
-            {copied ? 'Copied! Paste in Cursor' : 'Copy Demo Prompt'}
+            {copied ? 'Copied! Paste in Cursor' : 'Copy demo prompt'}
           </button>
           <button
             type="button"
