@@ -38,28 +38,89 @@ function mulberry32(seed: number) {
   }
 }
 
+// Curated US metro coordinates for healthy fleet sites. Pinned to actual
+// cities so every dot lands on land — the previous random lat/lng generator
+// was scattering pins into the Atlantic, Gulf, and Pacific. Listed roughly
+// west-to-east; the seeded RNG below shuffles + samples this list so the
+// layout is deterministic across reloads.
+const US_METRO_SITES: { city: string; lat: number; lng: number }[] = [
+  { city: 'Portland, OR', lat: 45.52, lng: -122.68 },
+  { city: 'Eugene, OR', lat: 44.05, lng: -123.09 },
+  { city: 'Sacramento, CA', lat: 38.58, lng: -121.49 },
+  { city: 'San Jose, CA', lat: 37.34, lng: -121.89 },
+  { city: 'Fresno, CA', lat: 36.74, lng: -119.78 },
+  { city: 'Los Angeles, CA', lat: 34.05, lng: -118.24 },
+  { city: 'San Diego, CA', lat: 32.72, lng: -117.16 },
+  { city: 'Reno, NV', lat: 39.53, lng: -119.81 },
+  { city: 'Las Vegas, NV', lat: 36.17, lng: -115.14 },
+  { city: 'Phoenix, AZ', lat: 33.45, lng: -112.07 },
+  { city: 'Tucson, AZ', lat: 32.22, lng: -110.97 },
+  { city: 'Boise, ID', lat: 43.62, lng: -116.21 },
+  { city: 'Salt Lake City, UT', lat: 40.76, lng: -111.89 },
+  { city: 'Albuquerque, NM', lat: 35.08, lng: -106.65 },
+  { city: 'Billings, MT', lat: 45.78, lng: -108.5 },
+  { city: 'Cheyenne, WY', lat: 41.14, lng: -104.82 },
+  { city: 'Denver, CO', lat: 39.74, lng: -104.99 },
+  { city: 'El Paso, TX', lat: 31.76, lng: -106.49 },
+  { city: 'San Antonio, TX', lat: 29.42, lng: -98.49 },
+  { city: 'Austin, TX', lat: 30.27, lng: -97.74 },
+  { city: 'Houston, TX', lat: 29.76, lng: -95.37 },
+  { city: 'Dallas, TX', lat: 32.78, lng: -96.8 },
+  { city: 'Oklahoma City, OK', lat: 35.47, lng: -97.52 },
+  { city: 'Wichita, KS', lat: 37.69, lng: -97.34 },
+  { city: 'Omaha, NE', lat: 41.26, lng: -95.93 },
+  { city: 'Minneapolis, MN', lat: 44.98, lng: -93.27 },
+  { city: 'Madison, WI', lat: 43.07, lng: -89.4 },
+  { city: 'Milwaukee, WI', lat: 43.04, lng: -87.91 },
+  { city: 'Chicago, IL', lat: 41.88, lng: -87.63 },
+  { city: 'St. Louis, MO', lat: 38.63, lng: -90.2 },
+  { city: 'Memphis, TN', lat: 35.15, lng: -90.05 },
+  { city: 'Nashville, TN', lat: 36.16, lng: -86.78 },
+  { city: 'New Orleans, LA', lat: 29.95, lng: -90.07 },
+  { city: 'Indianapolis, IN', lat: 39.77, lng: -86.16 },
+  { city: 'Cincinnati, OH', lat: 39.1, lng: -84.51 },
+  { city: 'Columbus, OH', lat: 39.96, lng: -82.99 },
+  { city: 'Cleveland, OH', lat: 41.5, lng: -81.69 },
+  { city: 'Detroit, MI', lat: 42.33, lng: -83.05 },
+  { city: 'Pittsburgh, PA', lat: 40.44, lng: -79.99 },
+  { city: 'Buffalo, NY', lat: 42.89, lng: -78.88 },
+  { city: 'Atlanta, GA', lat: 33.75, lng: -84.39 },
+  { city: 'Charlotte, NC', lat: 35.23, lng: -80.84 },
+  { city: 'Raleigh, NC', lat: 35.78, lng: -78.64 },
+  { city: 'Richmond, VA', lat: 37.54, lng: -77.43 },
+  { city: 'Washington, DC', lat: 38.91, lng: -77.04 },
+  { city: 'Philadelphia, PA', lat: 39.95, lng: -75.17 },
+  { city: 'Boston, MA', lat: 42.36, lng: -71.06 },
+  { city: 'Hartford, CT', lat: 41.76, lng: -72.69 },
+  { city: 'Albany, NY', lat: 42.65, lng: -73.76 },
+  { city: 'Jacksonville, FL', lat: 30.33, lng: -81.66 },
+  { city: 'Orlando, FL', lat: 28.54, lng: -81.38 },
+  { city: 'Tampa, FL', lat: 27.95, lng: -82.46 },
+]
+
 function buildNorthAmericaFleetSites(): FleetSite[] {
-  const rand = mulberry32(0x9e3779b1)
-  const greens: FleetSite[] = []
-  for (let i = 0; i < 44; i++) {
-    const lat = 26 + rand() * 22.5
-    const lng = -123.8 + rand() * 56.5
-    greens.push({
-      id: `ok-${i}`,
-      lat,
-      lng,
-      ok: true,
-      label: `Healthy agent · ${lat.toFixed(1)}°, ${lng.toFixed(1)}°`,
-    })
-  }
+  // Geography matches the modal narrative: USW-7 = US West hub. We anchor the
+  // red epicenter in San Francisco rather than Seattle so the focal point of
+  // the map sits visually inside the US silhouette instead of the top-left
+  // corner — operators don't have to crane their eye into the chrome.
+  // Keep these IDs in sync with the AgentHubModal copy ("Agent USW-7 · US
+  // West hub") — map and modal must read as one story.
   const reds: FleetSite[] = [
+    {
+      id: 'critical-west',
+      lat: 37.77,
+      lng: -122.42,
+      ok: false,
+      severity: 'critical',
+      label: 'USW-7 · Order Processing breach (epicenter)',
+    },
     {
       id: 'critical-midwest',
       lat: 39.1,
       lng: -94.58,
       ok: false,
-      severity: 'critical',
-      label: 'USC-3 · Order Processing breach (epicenter)',
+      severity: 'warning',
+      label: 'USC-3 · Order Processing — elevated warnings',
     },
     {
       id: 'critical-east',
@@ -69,15 +130,34 @@ function buildNorthAmericaFleetSites(): FleetSite[] {
       severity: 'warning',
       label: 'USE-1 · Order Processing — elevated warnings',
     },
-    {
-      id: 'critical-south',
-      lat: 32.78,
-      lng: -96.8,
-      ok: false,
-      severity: 'warning',
-      label: 'USS-2 · Order Processing — elevated warnings',
-    },
   ]
+
+  // Avoid placing healthy pins on top of the critical/warning epicenters
+  // (within ~150km). Otherwise the red blast-radius halo swallows a green dot
+  // and the operator sees a momentary "is that ok or not" flicker.
+  const tooCloseToCritical = (s: { lat: number; lng: number }) =>
+    reds.some(
+      (r) => Math.abs(r.lat - s.lat) < 1.5 && Math.abs(r.lng - s.lng) < 1.5,
+    )
+
+  // Deterministic shuffle of the curated metro list so the green dots scatter
+  // across regions instead of clumping in list order, while staying stable
+  // across reloads.
+  const rand = mulberry32(0x9e3779b1)
+  const pool = US_METRO_SITES.filter((s) => !tooCloseToCritical(s))
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+
+  const greens: FleetSite[] = pool.map((s, i) => ({
+    id: `ok-${i}`,
+    lat: s.lat,
+    lng: s.lng,
+    ok: true,
+    label: `Healthy agent · ${s.city}`,
+  }))
+
   return [...greens, ...reds]
 }
 
