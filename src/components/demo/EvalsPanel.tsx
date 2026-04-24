@@ -34,7 +34,7 @@ const FLAGGED_CASE = {
   expected:
     'Confirm the swap is in-policy (same SKU family, same price), reserve the new size, and hand off to fulfillment for the relabel.',
   actual:
-    'Acknowledged the request and offered a 10% loyalty credit toward a future order before completing the swap.',
+    'Acknowledged the request and offered a 10% loyalty credit towards a future order before completing the swap.',
   policySlice: 'POL-AGT-DOMAIN-REM-03 · off-topic upsell during in-flight order edit',
   capturedFrom: 'Production session · 2 days ago',
 }
