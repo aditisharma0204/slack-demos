@@ -108,7 +108,7 @@ function buildNorthAmericaFleetSites(): FleetSite[] {
   //
   // Story state: a single critical breach with no cascading warning sites.
   // The fleet legend still surfaces "Warning" as a category so operators
-  // recognise the schema, but no warning dots render in this state.
+  // recognize the schema, but no warning dots render in this state.
   const reds: FleetSite[] = [
     {
       id: 'critical-west',

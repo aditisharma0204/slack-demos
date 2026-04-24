@@ -4,7 +4,7 @@ import type { ChatMessagePayload } from '@/engine/StoryEngine'
 import { formatMessageWithMentions } from '@/components/chat/formatMessageWithMentions'
 import { ChatHeader as SharedChatHeader } from '@/components/chat/ChatHeader'
 import type { HeaderViewType } from '@/components/chat/ChatHeader'
-import iconForwardMessage from '@/assets/icons/Forword message.svg'
+import iconForwardMessage from '@/assets/icons/Forward message.svg'
 import iconMoreActions from '@/assets/icons/More actions.svg'
 import iconSaveForLater from '@/assets/icons/Save for later.svg'
 

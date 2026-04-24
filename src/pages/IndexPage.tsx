@@ -10,7 +10,7 @@ import {
 import { getStories } from '@/stories'
 import moreIcon from '@/assets/icons/more.svg'
 import moreActionsCardIcon from '@/assets/icons/More actions.svg'
-import forwardMessageIcon from '@/assets/icons/Forword message.svg'
+import forwardMessageIcon from '@/assets/icons/Forward message.svg'
 import { getShareLinkOrigin, sharedDemoUrlSuffix } from '@/utils/sharedDemoLink'
 
 const HIDDEN_DEMOS_STORAGE_KEY = 'hiddenDemoIds'
