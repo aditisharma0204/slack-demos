@@ -209,7 +209,7 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
       >
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold m-0" style={{ color: 'var(--slack-text)' }}>
+            <h3 className="mc-type-panel-h">
               Running Evals · Order Processing Agent
             </h3>
             <p className="text-xs m-0 mt-0.5" style={{ color: 'var(--slack-msg-muted)' }}>
@@ -232,7 +232,7 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
         <CoverageCards overallProgress={overallProgress} isComplete={isComplete} />
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto px-4 py-3 space-y-2" style={{ backgroundColor: '#fafafa' }}>
+      <div className="flex-1 min-h-0 overflow-auto px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--slack-main-bg)' }}>
         {TESTS.map((test, idx) => {
           const isFlaggedRow = test.id === 'conversational-flow'
           return (
@@ -279,15 +279,22 @@ function PassRateBadge({
   baseline: number
 }) {
   if (isComplete) {
+    const delta = 98.4 - baseline
     return (
       <div className="text-right">
         <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--slack-msg-muted)' }}>
           Pass rate
         </div>
-        <div className="text-base font-extrabold" style={{ color: 'var(--mc-success)' }}>
-          98.4%
-          <span className="text-[10px] font-semibold ml-1" style={{ color: 'var(--slack-msg-muted)' }}>
-            (was {baseline.toFixed(1)}%)
+        <div className="flex items-baseline justify-end gap-1.5">
+          <span className="text-base font-extrabold" style={{ color: 'var(--mc-success)' }}>
+            98.4%
+          </span>
+          <span
+            className="text-[10px] font-semibold tabular-nums"
+            style={{ color: 'var(--mc-success)' }}
+            title={`Baseline ${baseline.toFixed(1)}%`}
+          >
+            +{delta.toFixed(1)}pp
           </span>
         </div>
       </div>
@@ -311,7 +318,7 @@ function ProgressBar({ progress, done, total }: { progress: number; done: number
     <div className="flex items-center gap-3">
       <div
         className="flex-1 h-1.5 rounded-full overflow-hidden"
-        style={{ backgroundColor: '#e8e8e8' }}
+        style={{ backgroundColor: 'var(--mc-tier2-border)' }}
       >
         <div
           className="h-full rounded-full"
@@ -322,9 +329,11 @@ function ProgressBar({ progress, done, total }: { progress: number; done: number
           }}
         />
       </div>
-      <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--slack-msg-muted)' }}>
-        {done}/{total}
-      </span>
+      {pct < 100 && (
+        <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--slack-msg-muted)' }}>
+          {done}/{total}
+        </span>
+      )}
     </div>
   )
 }
@@ -345,12 +354,7 @@ function CoverageCards({
       }}
     >
       <div className="mb-2">
-        <h4
-          className="text-[13px] font-extrabold m-0"
-          style={{ color: 'var(--slack-text)' }}
-        >
-          Eval suite coverage
-        </h4>
+        <h4 className="mc-type-card-h">Eval suite coverage</h4>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {COVERAGE.map((c) => {
@@ -365,16 +369,27 @@ function CoverageCards({
 
           const borderColor =
             cardStatus === 'clean'
-              ? '#b8e0ce'
+              ? 'var(--mc-success-soft-border)'
               : cardStatus === 'flagged'
                 ? 'var(--mc-critical-soft-border)'
                 : 'var(--slack-border)'
           const bg =
             cardStatus === 'clean'
-              ? '#f0faf6'
+              ? 'var(--mc-success-soft-bg)'
               : cardStatus === 'flagged'
                 ? 'var(--mc-critical-soft-bg)'
                 : 'var(--slack-pane-bg)'
+
+          // Coverage card status maps onto StatusBadge tones — single primitive,
+          // no second icon implementation.
+          const dotTone: StatusTone =
+            cardStatus === 'clean' ? 'passed' : cardStatus === 'flagged' ? 'failed' : 'running'
+          const dotLabel =
+            cardStatus === 'clean'
+              ? 'All passing'
+              : cardStatus === 'flagged'
+                ? 'Flagged for review'
+                : 'Running'
 
           return (
             <div
@@ -386,42 +401,31 @@ function CoverageCards({
                 transition: 'border-color 0.3s ease, background-color 0.3s ease',
               }}
             >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div
-                  className="text-[13px] font-extrabold m-0 truncate"
-                  style={{ color: 'var(--slack-text)' }}
-                >
-                  {c.label}
+              <div className="mc-type-card-h truncate mb-1.5">{c.label}</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className="text-[18px] font-extrabold tabular-nums leading-none"
+                    style={{
+                      color:
+                        cardStatus === 'clean'
+                          ? 'var(--mc-success)'
+                          : cardStatus === 'flagged'
+                            ? 'var(--mc-critical)'
+                            : 'var(--slack-text)',
+                      transition: 'color 0.3s ease',
+                    }}
+                  >
+                    {passing}
+                  </span>
+                  <span
+                    className="text-[13px] font-semibold tabular-nums"
+                    style={{ color: 'var(--slack-msg-muted)' }}
+                  >
+                    / {c.total}
+                  </span>
                 </div>
-                <CoverageStatusDot status={cardStatus} />
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[18px] font-extrabold tabular-nums leading-none"
-                  style={{
-                    color:
-                      cardStatus === 'clean'
-                        ? 'var(--mc-success)'
-                        : cardStatus === 'flagged'
-                          ? 'var(--mc-critical)'
-                          : 'var(--slack-text)',
-                    transition: 'color 0.3s ease',
-                  }}
-                >
-                  {passing}
-                </span>
-                <span
-                  className="text-[13px] font-semibold tabular-nums"
-                  style={{ color: 'var(--slack-msg-muted)' }}
-                >
-                  / {c.total}
-                </span>
-                <span
-                  className="text-[11px] ml-auto"
-                  style={{ color: 'var(--slack-msg-muted)' }}
-                >
-                  passing
-                </span>
+                <StatusBadge tone={dotTone} size="sm" ariaLabel={dotLabel} />
               </div>
             </div>
           )
@@ -431,19 +435,103 @@ function CoverageCards({
   )
 }
 
-function CoverageStatusDot({ status }: { status: 'running' | 'clean' | 'flagged' }) {
-  if (status === 'clean') {
+/**
+ * StatusBadge — the single primitive for every "passing / failing / running /
+ * queued" indicator inside the Evals panel.
+ *
+ * Tones (semantic, not visual):
+ *   • passed   → solid success-green disc with white check
+ *   • failed   → solid critical-red disc with white X
+ *   • running  → soft info disc with spinner
+ *   • queued   → neutral disc with a muted dot
+ *
+ * Sizes lock the disc + glyph + stroke together so a "small" badge never drifts
+ * from the "medium" version. If you need a new size, add it here — never inline
+ * a one-off circle/check anywhere else in this file.
+ */
+type StatusTone = 'queued' | 'running' | 'passed' | 'failed'
+type StatusSize = 'sm' | 'md'
+
+const STATUS_DIMS: Record<StatusSize, { wrap: string; icon: number; stroke: number }> = {
+  sm: { wrap: 'size-4', icon: 9, stroke: 2.4 },
+  md: { wrap: 'size-5', icon: 11, stroke: 2.2 },
+}
+
+const TONE_LABEL: Record<StatusTone, string> = {
+  queued: 'Queued',
+  running: 'Running',
+  passed: 'Passing',
+  failed: 'Failed',
+}
+
+function StatusBadge({
+  tone,
+  size = 'md',
+  ariaLabel,
+}: {
+  tone: StatusTone
+  size?: StatusSize
+  ariaLabel?: string
+}) {
+  const dims = STATUS_DIMS[size]
+  const wrapClass = `inline-flex items-center justify-center ${dims.wrap} rounded-full shrink-0`
+  const label = ariaLabel ?? TONE_LABEL[tone]
+
+  if (tone === 'queued') {
     return (
       <span
-        className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
-        style={{ backgroundColor: 'var(--mc-success)' }}
-        aria-label="All passing"
+        className={wrapClass}
+        style={{ backgroundColor: 'var(--mc-status-queued-bg)' }}
+        aria-label={label}
       >
-        <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <span
+          className="size-1.5 rounded-full"
+          style={{ backgroundColor: 'var(--mc-status-queued-fg)' }}
+        />
+      </span>
+    )
+  }
+
+  if (tone === 'running') {
+    return (
+      <span
+        className={wrapClass}
+        style={{ backgroundColor: 'var(--mc-status-running-icon-bg)' }}
+        aria-label={label}
+      >
+        <svg
+          className="ep-spinner"
+          width={dims.icon}
+          height={dims.icon}
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+        >
+          <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
+          <path
+            d="M14 8a6 6 0 0 1-6 6"
+            stroke="var(--mc-accent)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </svg>
+      </span>
+    )
+  }
+
+  if (tone === 'passed') {
+    return (
+      <span
+        className={wrapClass}
+        style={{ backgroundColor: 'var(--mc-success)' }}
+        aria-label={label}
+      >
+        <svg width={dims.icon} height={dims.icon} viewBox="0 0 16 16" fill="none" aria-hidden>
           <path
             d="M3.5 8.5L6.5 11.5L12.5 5.5"
             stroke="white"
-            strokeWidth="2.4"
+            strokeWidth={dims.stroke}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -451,33 +539,19 @@ function CoverageStatusDot({ status }: { status: 'running' | 'clean' | 'flagged'
       </span>
     )
   }
-  if (status === 'flagged') {
-    return (
-      <span
-        className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
-        style={{ backgroundColor: 'var(--mc-critical)' }}
-        aria-label="Flagged for review"
-      >
-        <svg width="8" height="8" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <path d="M4 4L12 12M12 4L4 12" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </span>
-    )
-  }
+
   return (
     <span
-      className="inline-flex items-center justify-center size-4 rounded-full shrink-0"
-      style={{ backgroundColor: '#eef4f8' }}
-      aria-label="Running"
+      className={wrapClass}
+      style={{ backgroundColor: 'var(--mc-critical)' }}
+      aria-label={label}
     >
-      <svg className="ep-spinner" width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
+      <svg width={dims.icon} height={dims.icon} viewBox="0 0 16 16" fill="none" aria-hidden>
         <path
-          d="M14 8a6 6 0 0 1-6 6"
-          stroke="var(--mc-accent)"
-          strokeWidth="2"
+          d="M4 4L12 12M12 4L4 12"
+          stroke="white"
+          strokeWidth={dims.stroke}
           strokeLinecap="round"
-          fill="none"
         />
       </svg>
     </span>
@@ -511,27 +585,27 @@ function EvalRow({
   // reads as acknowledged-but-warm (no longer alarming red, but distinct from
   // a clean pass so it stays visible in audit).
   const borderColor = isReviewedAccepted
-    ? '#b8e0ce'
+    ? 'var(--mc-success-soft-border)'
     : isReviewedKept
       ? 'var(--slack-border)'
       : isFailed
         ? 'var(--mc-critical-soft-border)'
         : isPassed
-          ? '#b8e0ce'
+          ? 'var(--mc-success-soft-border)'
           : isRunning
-            ? '#cde3f0'
+            ? 'var(--mc-info-soft-border)'
             : 'var(--slack-border)'
 
   const bg = isReviewedAccepted
-    ? '#f0faf6'
+    ? 'var(--mc-success-soft-bg)'
     : isReviewedKept
       ? 'var(--slack-pane-bg)'
       : isFailed
         ? 'var(--mc-critical-soft-bg)'
         : isPassed
-          ? '#f0faf6'
+          ? 'var(--mc-success-soft-bg)'
           : isRunning
-            ? '#f3f9fd'
+            ? 'var(--mc-info-soft-bg)'
             : 'var(--slack-pane-bg)'
 
   // Status icon swaps to a green check when accepted; kept stays as the red X
@@ -551,11 +625,9 @@ function EvalRow({
         transition: 'border 0.3s ease, background-color 0.3s ease, opacity 0.3s ease',
       }}
     >
-      <StatusIcon status={iconStatus} />
+      <StatusBadge tone={iconStatus} size="md" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold m-0" style={{ color: 'var(--slack-text)' }}>
-          {test.label}
-        </div>
+        <div className="mc-type-row-label">{test.label}</div>
         <div className="text-[11px] m-0 mt-0.5" style={{ color: 'var(--slack-msg-muted)' }}>
           {isQueued && 'Queued'}
           {isRunning && `Running… ${state.done}/${test.total} cases`}
@@ -587,61 +659,6 @@ function EvalRow({
   )
 }
 
-function StatusIcon({ status }: { status: RowState['status'] }) {
-  if (status === 'queued') {
-    return (
-      <span
-        className="inline-flex items-center justify-center size-5 rounded-full shrink-0"
-        style={{ backgroundColor: '#e8e8e8' }}
-      >
-        <span className="size-1.5 rounded-full" style={{ backgroundColor: '#9e9e9e' }} />
-      </span>
-    )
-  }
-  if (status === 'running') {
-    return (
-      <span
-        className="inline-flex items-center justify-center size-5 rounded-full shrink-0"
-        style={{ backgroundColor: '#eef4f8' }}
-      >
-        <svg className="ep-spinner" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
-          <path
-            d="M14 8a6 6 0 0 1-6 6"
-            stroke="var(--mc-accent)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </svg>
-      </span>
-    )
-  }
-  if (status === 'passed') {
-    return (
-      <span
-        className="inline-flex items-center justify-center size-5 rounded-full shrink-0"
-        style={{ backgroundColor: 'var(--mc-success)' }}
-      >
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <path d="M3.5 8.5L6.5 11.5L12.5 5.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-    )
-  }
-  // failed
-  return (
-    <span
-      className="inline-flex items-center justify-center size-5 rounded-full shrink-0"
-      style={{ backgroundColor: 'var(--mc-critical)' }}
-    >
-      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path d="M4 4L12 12M12 4L4 12" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    </span>
-  )
-}
-
 function CompletionSummary({
   totalPassed,
   totalFailed,
@@ -661,20 +678,20 @@ function CompletionSummary({
 
   const footerLine =
     reviewDecision === 'pending'
-      ? 'Resolve the flagged case above, then deploy from the chat thread on the right.'
-      : 'Ready to deploy from the chat thread on the right.'
+      ? 'Resolve the flagged case to unlock deploy.'
+      : 'Ready to deploy.'
 
   return (
     <div
       className="mt-3 rounded-lg px-4 py-3"
-      style={{ border: '1px solid #b8e0ce', backgroundColor: '#f0faf6' }}
+      style={{
+        border: '1px solid var(--mc-success-soft-border)',
+        backgroundColor: 'var(--mc-success-soft-bg)',
+      }}
     >
       <div className="flex items-center gap-2 mb-1">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <circle cx="8" cy="8" r="7" fill="var(--mc-success)" />
-          <path d="M4.5 8.5L7 11L11.5 5.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className="text-xs font-bold" style={{ color: 'var(--mc-success)' }}>
+        <StatusBadge tone="passed" size="md" ariaLabel="Quality gate passed" />
+        <span className="mc-type-row-label" style={{ color: 'var(--mc-success)' }}>
           Quality gate passed
         </span>
       </div>
@@ -777,7 +794,7 @@ function FlaggedCaseReviewModal({
             className="rounded-md px-3 py-2.5 flex items-start gap-2.5"
             style={{
               border: '1px solid var(--slack-border)',
-              backgroundColor: '#fafafa',
+              backgroundColor: 'var(--slack-main-bg)',
             }}
           >
             <svg

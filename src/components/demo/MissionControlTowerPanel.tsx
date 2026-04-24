@@ -8,9 +8,8 @@ import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
 import { PermissionsEvalCard } from '@/components/governance/PermissionsEvalCard'
 import { TimeScopeToggle, type TimeScope } from '@/components/governance/TimeScopeToggle'
 import {
-  DestructiveSecondaryButton,
   PrimaryButton,
-  SecondaryPrimaryButton,
+  SecondaryButton,
 } from '@/components/ui/DesignSystemButtons'
 import { getFleetStateFromUrl, type FleetState } from '@/data/governance/missionControlState'
 
@@ -105,6 +104,10 @@ function buildNorthAmericaFleetSites(): FleetSite[] {
   // corner — operators don't have to crane their eye into the chrome.
   // Keep these IDs in sync with the AgentHubModal copy ("Agent USW-7 · US
   // West hub") — map and modal must read as one story.
+  //
+  // Story state: a single critical breach with no cascading warning sites.
+  // The fleet legend still surfaces "Warning" as a category so operators
+  // recognise the schema, but no warning dots render in this state.
   const reds: FleetSite[] = [
     {
       id: 'critical-west',
@@ -114,27 +117,11 @@ function buildNorthAmericaFleetSites(): FleetSite[] {
       severity: 'critical',
       label: 'USW-7 · Order Processing breach (epicenter)',
     },
-    {
-      id: 'critical-midwest',
-      lat: 39.1,
-      lng: -94.58,
-      ok: false,
-      severity: 'warning',
-      label: 'USC-3 · Order Processing — elevated warnings',
-    },
-    {
-      id: 'critical-east',
-      lat: 40.72,
-      lng: -74.02,
-      ok: false,
-      severity: 'warning',
-      label: 'USE-1 · Order Processing — elevated warnings',
-    },
   ]
 
-  // Avoid placing healthy pins on top of the critical/warning epicenters
-  // (within ~150km). Otherwise the red blast-radius halo swallows a green dot
-  // and the operator sees a momentary "is that ok or not" flicker.
+  // Avoid placing healthy pins on top of the critical epicenter (within
+  // ~150km). Otherwise the red blast-radius halo swallows a green dot and
+  // the operator sees a momentary "is that ok or not" flicker.
   const tooCloseToCritical = (s: { lat: number; lng: number }) =>
     reds.some(
       (r) => Math.abs(r.lat - s.lat) < 1.5 && Math.abs(r.lng - s.lng) < 1.5,
@@ -291,19 +278,27 @@ function FleetStatsGrid() {
         </div>
         <span className="mc-type-meta m-0">Canada &middot; United States &middot; Mexico</span>
         <ul className="list-none m-0 p-0 space-y-1.5 mt-1">
-          {([
-            { label: 'Healthy', count: 42, color: 'var(--mc-success)' },
-            { label: 'Urgent', count: 1, color: 'var(--mc-critical)' },
-            { label: 'Warning', count: 2, color: 'var(--mc-warn-amber)' },
-          ] as const).map((row) => (
-            <li key={row.label} className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <span className="inline-block size-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
-                <span className="mc-type-body font-medium" style={{ color: row.color }}>{row.label}</span>
-              </span>
-              <span className="mc-type-body font-bold" style={{ color: 'var(--slack-text)' }}>{row.count}</span>
-            </li>
-          ))}
+          {/* Severity ladder — vocabulary mirrors the fleet map legend
+              (Healthy / Warning / Critical). Zero-count rows are filtered
+              out so the user never reads "Warning 0" as a category that
+              doesn't exist in the current state. */}
+          {(
+            [
+              { label: 'Healthy', count: 42, color: 'var(--mc-success)' },
+              { label: 'Critical', count: 1, color: 'var(--mc-critical)' },
+              { label: 'Warning', count: 0, color: 'var(--mc-warn-amber)' },
+            ] as const
+          )
+            .filter((row) => row.count > 0)
+            .map((row) => (
+              <li key={row.label} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <span className="inline-block size-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                  <span className="mc-type-body font-medium" style={{ color: row.color }}>{row.label}</span>
+                </span>
+                <span className="mc-type-body font-bold" style={{ color: 'var(--slack-text)' }}>{row.count}</span>
+              </li>
+            ))}
         </ul>
       </div>
     </div>
@@ -731,7 +726,7 @@ function AgentFleetMap({
         <div className="mc-map-floating-legend" aria-hidden>
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: 'var(--mc-success)' }} />
-            OK
+            Healthy
           </span>
           {!isAllClear && (
             <>
@@ -819,18 +814,37 @@ const TOPO_EDGES: TopoEdge[] = [
   { from: 'qa-hub', to: 'qa-3' }, { from: 'qa-hub', to: 'qa-4' },
 ]
 
-const USW7_AGENTS = [
-  // Sort: critical → warning → nominal. Reviewers should see what needs
-  // attention first, healthy agents last. The CTA on the critical agent
-  // is "Investigate" (not "Stop traffic"); stopping traffic is an action
-  // taken from inside the Mission Control Agent conversation, not the
-  // surface-level fleet card.
-  { name: 'Order Processing Agent', sub: 'US production \u00b7 Retail', status: 'critical' as const, statusLabel: 'Policy breach detected', actionLabel: 'Investigate' },
-  { name: 'LLM Routing Agent', sub: 'Primary + fallback', status: 'warning' as const, statusLabel: 'Elevated latency' },
-  { name: 'Evaluator Agent', sub: 'Golden sets \u00b7 RAG', status: 'warning' as const, statusLabel: 'Drift detected' },
-  { name: 'Response Orchestrator Agent', sub: 'Synthesis + policy', status: 'ok' as const, statusLabel: 'Nominal' },
-  { name: 'Compliance Agent', sub: 'Policy enforcement', status: 'ok' as const, statusLabel: 'Nominal' },
-  { name: 'Knowledge Base Agent', sub: 'Vector store \u00b7 Retrieval', status: 'ok' as const, statusLabel: 'Nominal' },
+type Usw7AgentStatus = 'ok' | 'warning' | 'critical'
+
+type Usw7AgentEntry = {
+  name: string
+  sub: string
+  status: Usw7AgentStatus
+  statusLabel: string
+  actionLabel?: string
+}
+
+// Story state — narrative split between fleet-zoom and cluster-zoom:
+//
+//   • At fleet zoom (map / IncidentAlertStrip / FleetStatsGrid) the story
+//     is "one critical epicenter" — a single red site in San Francisco,
+//     no amber dots. The cascade is part of the same incident, so we
+//     don't double-count it at the fleet level.
+//
+//   • At cluster zoom (AgentUSW7Detail modal) the story is "what's the
+//     spread inside this incident" — 1 critical + 2 cascading warnings +
+//     3 healthy agents. Drilling in reveals the impact, not the map.
+//
+// The CTA on the critical agent is "Investigate" (not "Stop traffic");
+// stopping traffic is an action taken from inside the Mission Control
+// Agent conversation, not the surface-level fleet card.
+const USW7_AGENTS: readonly Usw7AgentEntry[] = [
+  { name: 'Order Processing Agent', sub: 'US production \u00b7 Retail', status: 'critical', statusLabel: 'Policy breach detected', actionLabel: 'Investigate' },
+  { name: 'LLM Routing Agent', sub: 'Primary + fallback', status: 'warning', statusLabel: 'Elevated latency' },
+  { name: 'Evaluator Agent', sub: 'Golden sets \u00b7 RAG', status: 'warning', statusLabel: 'Drift detected' },
+  { name: 'Response Orchestrator Agent', sub: 'Synthesis + policy', status: 'ok', statusLabel: 'Healthy' },
+  { name: 'Compliance Agent', sub: 'Policy enforcement', status: 'ok', statusLabel: 'Healthy' },
+  { name: 'Knowledge Base Agent', sub: 'Vector store \u00b7 Retrieval', status: 'ok', statusLabel: 'Healthy' },
 ]
 
 function statusColor(s: 'ok' | 'warning' | 'critical') {
@@ -1064,339 +1078,332 @@ function ModalCloseButton({ onClick }: { onClick: () => void }) {
 }
 
 /**
- * Decision-grade card that combines the critical agent header, the metrics an
- * IT director needs to choose between **Investigate** and **Stop traffic**,
- * the cascade into dependent agents, and the CTA pair — all as one block. The
- * design principle: the operator should never have to swap eyes between two
- * cards to make this call. Everything that informs the choice lives here.
+ * Hand-tuned downstream-impact copy per dependent agent. Written for an IT
+ * director — what they *feel* (slow customers, unreliable scores), not what
+ * an SRE measures (p95, drift detector). Lifted out of `AgentUSW7Detail` so
+ * it can be reused / iterated without touching the modal layout.
  */
-function IncidentDecisionCard({
-  critical,
-  dependents,
-  onInvestigate,
-  onStopTraffic,
-}: {
-  critical: { name: string; sub: string; statusLabel: string }
-  dependents: { name: string; sub: string; statusLabel: string }[]
-  onInvestigate: () => void
-  onStopTraffic: () => void
-}) {
-  // Decision metrics. These are the three numbers that change the answer to
-  // "do I stop traffic right now or do I investigate first?". Kept to three
-  // because four becomes a wall and the operator stops scanning.
-  const metrics: { label: string; value: string; sub: string; tone: 'critical' | 'neutral' }[] = [
-    {
-      label: 'Customers affected',
-      value: '~420',
-      sub: 'per hour, right now',
-      tone: 'critical',
-    },
-    {
-      label: 'Revenue at risk',
-      value: '$180k',
-      sub: 'per hour exposure',
-      tone: 'critical',
-    },
-    {
-      label: 'Trend',
-      value: '↗ Worsening',
-      sub: '+12 warnings/min over last 8 min',
-      tone: 'critical',
-    },
-  ]
+const USW7_IMPACT_COPY: Record<string, { headline: string; detail: string }> = {
+  'LLM Routing Agent': {
+    headline: 'Customer requests are slower',
+    detail:
+      'These will recover on their own once Order Processing Agent is fixed. No separate action is needed for them.',
+  },
+  'Evaluator Agent': {
+    headline: 'Quality scores are unreliable',
+    detail:
+      'These will recover on their own once Order Processing Agent is fixed. No separate action is needed for them.',
+  },
+}
 
-  // Hand-tuned downstream impact notes per dependent. Written for an IT
-  // director — what they feel (slow customers, untrusted scores), not what an
-  // SRE measures (p95, drift detector). Kept on this component, not on
-  // USW7_AGENTS, because the framing is causal and only makes sense with an
-  // upstream critical agent. Lift into a per-incident lookup if a second
-  // critical scenario gets added.
-  const impactCopy: Record<string, { headline: string; detail: string }> = {
-    'LLM Routing Agent': {
-      headline: 'Customer requests are slower',
-      detail:
-        'This agent keeps retrying the broken answers from Order Processing. Customer wait time is up about 37% in the last 8 minutes.',
-    },
-    'Evaluator Agent': {
-      headline: 'Quality scores are unreliable',
-      detail:
-        'The broken answers are mixing into the data this agent uses to grade other agents, so its scoring is skewed until Order Processing is fixed.',
-    },
-  }
-
+/**
+ * Thin horizontal divider — matches Figma "💻 Divider List Entity" — used to
+ * partition the four sections inside the inset card body. Kept local because
+ * the only consumer is `AgentUSW7Detail`.
+ */
+function ModalCardDivider() {
   return (
     <div
-      className="rounded-lg overflow-hidden"
-      style={{
-        border: '1px solid var(--mc-critical-soft-border)',
-        backgroundColor: 'var(--mc-critical-soft-bg)',
-      }}
-    >
-      {/* Header — agent identity + status pill + when it started. The 'Started'
-          stamp is the second-most important piece of information after the
-          status, because it tells the operator how much pressure they're under. */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span
-                className="inline-block size-2 rounded-full shrink-0"
-                style={{ backgroundColor: statusColor('critical') }}
-              />
-              <span
-                className="text-[11px] font-medium"
-                style={{ color: statusColor('critical') }}
-              >
-                {critical.statusLabel}
-              </span>
-            </div>
-            <div
-              className="text-[15px] font-semibold m-0"
-              style={{ color: 'var(--slack-text)' }}
-            >
-              {critical.name}
-            </div>
-            <div
-              className="text-xs mt-0.5 m-0"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              {critical.sub}
-            </div>
-          </div>
-          <span
-            className="text-[11px] font-medium shrink-0"
-            style={{ color: 'var(--slack-msg-muted)' }}
-          >
-            Started 8 min ago
-          </span>
-        </div>
-      </div>
-
-      {/* Decision metrics — the three numbers that change the answer to
-          "stop traffic now, or investigate first?". */}
-      <div
-        className="grid grid-cols-3 gap-px"
-        style={{
-          backgroundColor: 'var(--mc-critical-soft-border)',
-          borderTop: '1px solid var(--mc-critical-soft-border)',
-          borderBottom: '1px solid var(--mc-critical-soft-border)',
-        }}
-      >
-        {metrics.map((m) => (
-          <div
-            key={m.label}
-            className="px-3 py-2.5"
-            style={{ backgroundColor: 'var(--mc-critical-soft-bg)' }}
-          >
-            <div
-              className="text-[10px] font-semibold uppercase tracking-[0.05em] m-0"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              {m.label}
-            </div>
-            <div
-              className="text-[17px] font-bold leading-tight mt-0.5 m-0"
-              style={{
-                color: m.tone === 'critical' ? 'var(--mc-critical)' : 'var(--slack-text)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {m.value}
-            </div>
-            <div
-              className="text-[11px] mt-0.5 m-0"
-              style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.35 }}
-            >
-              {m.sub}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Downstream impact — same incident, just told as "and here's who else
-          is hurting because of it". Subsection inside the same card so the
-          operator never reads it as separate from the metrics above. */}
-      {dependents.length > 0 && (
-        <div className="px-4 pt-3 pb-1">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span
-              className="text-[10px] font-bold uppercase tracking-[0.06em]"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              Downstream impact &middot; {dependents.length} other agents affected
-            </span>
-          </div>
-          <p
-            className="text-xs m-0 mb-2"
-            style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.5 }}
-          >
-            These will recover on their own once Order Processing is fixed &mdash;
-            no separate action needed for them.
-          </p>
-          <ul className="m-0 p-0 list-none space-y-1.5">
-            {dependents.map((d) => {
-              const copy = impactCopy[d.name]
-              return (
-                <li
-                  key={d.name}
-                  className="flex gap-2 items-start"
-                  style={{
-                    paddingTop: 7,
-                    borderTop: '1px solid rgba(192, 19, 47, 0.12)',
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="inline-block shrink-0 mt-1.5"
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--mc-warn-amber)',
-                    }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <span
-                        className="text-[13px] font-semibold"
-                        style={{ color: 'var(--slack-text)' }}
-                      >
-                        {d.name}
-                      </span>
-                      <span
-                        className="text-[11px] font-medium"
-                        style={{ color: 'var(--mc-warn-amber)' }}
-                      >
-                        {copy?.headline ?? d.statusLabel}
-                      </span>
-                    </div>
-                    <p
-                      className="text-xs m-0 mt-0.5"
-                      style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.45 }}
-                    >
-                      {copy?.detail ?? d.sub}
-                    </p>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* CTAs — outline pair so neither button forces the operator's hand.
-          Investigate is on the left because the safer default is "look first". */}
-      <div
-        className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
-        style={{ borderTop: '1px solid var(--mc-critical-soft-border)' }}
-      >
-        <span
-          className="text-[11px] m-0"
-          style={{ color: 'var(--slack-msg-muted)' }}
-        >
-          Stopping traffic also pauses the {dependents.length} downstream agents.
-        </span>
-        <div className="flex items-center gap-2">
-          <SecondaryPrimaryButton onClick={onInvestigate}>
-            Investigate
-          </SecondaryPrimaryButton>
-          <DestructiveSecondaryButton onClick={onStopTraffic}>
-            Stop traffic
-          </DestructiveSecondaryButton>
-        </div>
-      </div>
-    </div>
+      className="w-full"
+      style={{ height: 1, backgroundColor: 'rgba(94,93,96,0.13)' }}
+      aria-hidden
+    />
   )
 }
 
-function AgentUSW7Detail({ onInvestigate, onClose }: { onInvestigate: () => void; onClose: () => void }) {
+/**
+ * AgentUSW7Detail — direct port of Figma `Web / Templates / Modal Template`
+ * (node 463:18357). Width, padding, type weights, divider treatment and the
+ * "single inset neutral card with four sections" structure all come from the
+ * Figma. Copy is sourced from the Figma where it diverged from earlier code.
+ *
+ * Section order inside the inset card (top → bottom):
+ *   1. Identity     — "Policy Breach Detected" / agent name / environment
+ *   2. Decision     — three-column metric grid (customers / revenue / trend)
+ *   3. Impact       — heading + body line + cascading-agent rows
+ *   4. Healthy      — three "Working as expected" rows
+ *
+ * Footer is a real footer band, NOT inline buttons inside the card.
+ * Investigate is the filled primary (recommended action); Stop Traffic is the
+ * outline secondary (available, but not the default path).
+ */
+
+type Usw7Agent = Usw7AgentEntry
+
+type DecisionMetric = { label: string; value: string; sub: string }
+
+const USW7_DECISION_METRICS: DecisionMetric[] = [
+  { label: 'Customer Affected', value: '420', sub: 'per hour' },
+  { label: 'Revenue At Risk', value: '$180K', sub: 'per hour exposure' },
+  { label: 'Trend', value: 'Low', sub: '+12 Warnings/min' },
+]
+
+function AgentUSW7Detail({
+  onInvestigate,
+  onClose,
+}: {
+  onInvestigate: () => void
+  onClose: () => void
+}) {
+  const critical = USW7_AGENTS.find((a) => a.status === 'critical')
+  const warnings = USW7_AGENTS.filter((a) => a.status === 'warning')
+  const healthy = USW7_AGENTS.filter((a) => a.status === 'ok')
   const criticalCount = USW7_AGENTS.filter((a) => a.status === 'critical').length
-  const warningCount = USW7_AGENTS.filter((a) => a.status === 'warning').length
+  const warningCount = warnings.length
+
   return (
     <div
-      className="w-full max-w-lg rounded-xl shadow-2xl flex flex-col max-h-[90vh]"
-      style={{ backgroundColor: 'var(--slack-pane-bg)', border: '1px solid var(--slack-border)' }}
+      className="w-full max-w-[520px] rounded-lg flex flex-col max-h-[90vh] overflow-hidden"
+      style={{
+        backgroundColor: 'var(--slack-pane-bg)',
+        border: '1px solid var(--slack-border)',
+        boxShadow: '0 18px 48px rgba(0, 0, 0, 0.1)',
+      }}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="usw7-modal-title"
       onClick={(e) => e.stopPropagation()}
     >
-      <header className="flex items-start justify-between gap-3 px-5 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--slack-border)' }}>
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold m-0" style={{ color: 'var(--slack-text)' }}>Agent USW-7</h2>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="mc-type-meta m-0">US West hub &middot; 6 agents</span>
+      {/* === Header (Modal Title Bar) ===================================== */}
+      <header className="px-7 py-5 flex items-start justify-between gap-3 flex-shrink-0">
+        <div className="min-w-0 flex flex-col gap-2">
+          <h2
+            id="usw7-modal-title"
+            className="text-[22px] font-extrabold leading-[30px] m-0 tracking-tight"
+            style={{ color: 'var(--slack-text)' }}
+          >
+            Agent USW-7
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="text-[13px] font-bold leading-[18px] whitespace-nowrap"
+              style={{ color: 'var(--mc-muted-strong)' }}
+            >
+              US West hub &middot; 6 agents
+            </span>
             {criticalCount > 0 && (
-              <span className="text-[11px] font-bold tracking-wide uppercase px-2 py-0.5 rounded" style={{ backgroundColor: '#fef0f2', color: 'var(--mc-critical)' }}>
-                {criticalCount} Critical
-              </span>
+              <SeverityChip
+                count={criticalCount}
+                label="Critical"
+                color="var(--mc-critical)"
+              />
             )}
             {warningCount > 0 && (
-              <span className="text-[11px] font-bold tracking-wide uppercase px-2 py-0.5 rounded" style={{ backgroundColor: '#fff7e0', color: 'var(--mc-warn-amber)' }}>
-                {warningCount} Warning
-              </span>
+              <SeverityChip
+                count={warningCount}
+                label="Warning"
+                color="var(--mc-warn-amber-strong)"
+              />
             )}
           </div>
         </div>
         <ModalCloseButton onClick={onClose} />
       </header>
-      <div className="px-4 py-3 space-y-2 overflow-auto flex-1 min-h-0">
-        {/* Single decision-grade card combining the critical agent header,
-            the metrics that inform the Stop-traffic-vs-Investigate call, the
-            downstream cascade, and the CTA pair. The operator never has to
-            swap eyes between two cards to make this decision. */}
-        {(() => {
-          const critical = USW7_AGENTS.find((a) => a.status === 'critical')
-          if (!critical) return null
-          return (
-            <IncidentDecisionCard
-              critical={critical}
-              dependents={USW7_AGENTS.filter((a) => a.status === 'warning')}
-              onInvestigate={onInvestigate}
-              onStopTraffic={() => {
-                /* UI-only kill switch on this surface; the wired containment
-                   flow lives inside the Mission Control Agent thread. */
-              }}
-            />
-          )
-        })()}
 
-        {/* Healthy dependents — kept compact so the eye doesn't linger on them. */}
-        {USW7_AGENTS.filter((a) => a.status === 'ok').map((agent) => (
-          <div
-            key={agent.name}
-            className="rounded-lg px-4 py-3"
-            style={{
-              border: '1px solid var(--slack-border)',
-              backgroundColor: 'var(--slack-pane-bg)',
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span
-                className="inline-block size-2 rounded-full shrink-0"
-                style={{ backgroundColor: statusColor(agent.status) }}
-              />
-              <span
-                className="text-[11px] font-medium"
-                style={{ color: statusColor(agent.status) }}
+      {/* === Body — single inset neutral card holds all sections ========== */}
+      <div className="px-7 pb-2 overflow-auto flex-1 min-h-0">
+        <div
+          className="rounded-lg flex flex-col gap-2 p-4"
+          style={{ backgroundColor: 'var(--mc-tier2-bg)' }}
+        >
+          {/* — 1. Identity ——————————————————————————————————————————————— */}
+          {critical && (
+            <div className="flex flex-col">
+              <div
+                className="text-[12px] font-bold leading-[18px]"
+                style={{ color: 'var(--mc-critical)' }}
               >
-                {agent.statusLabel}
-              </span>
+                Policy Breach Detected
+              </div>
+              <div className="py-[3px]">
+                <div
+                  className="text-[15px] font-extrabold leading-[22px]"
+                  style={{ color: 'var(--slack-text)' }}
+                >
+                  {critical.name}
+                </div>
+              </div>
+              <div
+                className="text-[12px] leading-[18px]"
+                style={{ color: 'var(--slack-msg-muted)' }}
+              >
+                US Production
+              </div>
             </div>
-            <div
-              className="text-sm font-semibold m-0"
-              style={{ color: 'var(--slack-text)' }}
-            >
-              {agent.name}
-            </div>
-            <div
-              className="text-xs mt-0.5 m-0"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              {agent.sub}
-            </div>
+          )}
+
+          <ModalCardDivider />
+
+          {/* — 2. Decision metrics ———————————————————————————————————————— */}
+          <div className="grid grid-cols-3 gap-8 items-start">
+            {USW7_DECISION_METRICS.map((m) => (
+              <div key={m.label} className="min-w-0 flex flex-col">
+                <div
+                  className="text-[12px] font-bold leading-[18px]"
+                  style={{ color: 'var(--slack-msg-muted)' }}
+                >
+                  {m.label}
+                </div>
+                <div
+                  className="text-[22px] font-extrabold leading-[30px] tabular-nums"
+                  style={{ color: 'var(--mc-critical)' }}
+                >
+                  {m.value}
+                </div>
+                <div
+                  className="text-[12px] font-bold leading-[18px]"
+                  style={{ color: 'var(--slack-msg-muted)' }}
+                >
+                  {m.sub}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+
+          {/* — 3. Impact + cascading agents (only when there ARE cascades) — */}
+          {warnings.length > 0 && (
+            <>
+              <ModalCardDivider />
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col">
+                  <div className="py-[3px]">
+                    <div
+                      className="text-[15px] font-extrabold leading-[22px]"
+                      style={{ color: 'var(--slack-text)' }}
+                    >
+                      Impact
+                    </div>
+                  </div>
+                  <p
+                    className="text-[13px] font-bold leading-[18px] m-0"
+                    style={{ color: 'var(--slack-msg-muted)' }}
+                  >
+                    {warnings.length === 1
+                      ? 'One other agent is affected.'
+                      : `${warnings.length} other agents are affected.`}{' '}
+                    These will recover on their own once Order Processing
+                    Agent is fixed. No separate action is needed for them.
+                    Stopping traffic also pauses these agents.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {warnings.map((agent) => (
+                    <CascadeAgentRow
+                      key={agent.name}
+                      agent={agent}
+                      status={USW7_IMPACT_COPY[agent.name]?.headline ?? agent.statusLabel}
+                      detail={USW7_IMPACT_COPY[agent.name]?.detail ?? agent.sub}
+                      statusColor="var(--mc-warn-amber-strong)"
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <ModalCardDivider />
+
+          {/* — 4. Healthy agents ——————————————————————————————————————————— */}
+          <div className="flex flex-col gap-2">
+            {healthy.map((agent) => (
+              <CascadeAgentRow
+                key={agent.name}
+                agent={agent}
+                status="Working as expected"
+                detail={agent.sub}
+                statusColor="var(--mc-success)"
+              />
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* === Footer — primary actions ===================================== */}
+      <footer
+        className="px-7 py-6 flex items-center justify-end gap-3 flex-shrink-0"
+        style={{ backgroundColor: 'var(--slack-pane-bg)' }}
+      >
+        {/* Stop Traffic is intentionally the de-emphasized outline action.
+            The user already opened a detail modal — they're investigating.
+            Stopping traffic is the rarer, deliberate alternative. */}
+        <SecondaryButton
+          onClick={() => {
+            /* UI-only kill switch on this surface; the wired containment
+               flow lives inside the Mission Control Agent thread. */
+          }}
+        >
+          Stop Traffic
+        </SecondaryButton>
+        <PrimaryButton onClick={onInvestigate}>Investigate</PrimaryButton>
+      </footer>
+    </div>
+  )
+}
+
+/**
+ * Header severity chip — outlined pill (border + text in the same color, no
+ * fill) per the Figma `Badge` component. Single height, single padding, single
+ * font ramp; severity tone is the only thing that varies.
+ */
+function SeverityChip({
+  count,
+  label,
+  color,
+}: {
+  count: number
+  label: string
+  color: string
+}) {
+  return (
+    <span
+      className="inline-flex items-center h-[18px] px-2 gap-1 rounded-[10px] text-[13px] font-bold leading-[18px] whitespace-nowrap"
+      style={{ border: `1px solid ${color}`, color }}
+    >
+      <span>{count}</span>
+      <span>{label}</span>
+    </span>
+  )
+}
+
+/**
+ * Cascade agent row — used both for warning agents (right side text in amber)
+ * and healthy agents (right side text in green). Single primitive so the row
+ * rhythm stays identical regardless of severity.
+ */
+function CascadeAgentRow({
+  agent,
+  status,
+  detail,
+  statusColor,
+}: {
+  agent: Usw7Agent
+  status: string
+  detail: string
+  statusColor: string
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="py-[3px] flex items-baseline gap-1.5">
+        <span
+          className="flex-1 min-w-0 text-[13px] font-bold leading-[18px]"
+          style={{ color: 'var(--slack-text)' }}
+        >
+          {agent.name}
+        </span>
+        <span
+          className="shrink-0 text-[12px] font-bold leading-[18px] whitespace-nowrap"
+          style={{ color: statusColor }}
+        >
+          {status}
+        </span>
+      </div>
+      <p
+        className="text-[13px] leading-[18px] m-0"
+        style={{ color: 'var(--slack-msg-muted)' }}
+      >
+        {detail}
+      </p>
     </div>
   )
 }
@@ -1406,11 +1413,13 @@ type AgentHubModalView = 'topology' | 'usw7-detail'
 function AgentHubModal({
   onInvestigate,
   onClose,
+  initialView = 'topology',
 }: {
   onInvestigate: () => void
   onClose: () => void
+  initialView?: AgentHubModalView
 }) {
-  const [view, setView] = useState<AgentHubModalView>('topology')
+  const [view, setView] = useState<AgentHubModalView>(initialView)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -1453,7 +1462,7 @@ function AgentHubModal({
 
 function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: () => void }) {
   return (
-    <div className="mc-alert-strip" role="status">
+    <div className="mc-alert-strip" role="status" aria-label="Critical incident: Domain restriction policy breach on Order Processing Agent">
       <span className="mc-alert-icon" aria-hidden>
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M10 2.5L17.5 16.25H2.5L10 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" fill="none" />
@@ -1461,15 +1470,19 @@ function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: ()
           <circle cx="10" cy="13.75" r="0.75" fill="currentColor" />
         </svg>
       </span>
-      <p className="mc-alert-text">
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>1 critical</strong>
-        <span className="mx-1 opacity-60" aria-hidden>+</span>
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>2 warning</strong>
-        <span className="mx-1.5" aria-hidden>·</span>
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>Order Processing Agent</strong>
-        <span className="mx-1.5" aria-hidden>·</span>
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>Domain restriction policy breach</strong>
-      </p>
+      <div className="mc-alert-content">
+        <div className="mc-alert-headline">
+          <span className="mc-alert-severity-chip">Critical</span>
+          <span className="mc-alert-title">Domain restriction policy breach</span>
+        </div>
+        <div className="mc-alert-meta">
+          <span className="mc-alert-meta-strong">Order Processing Agent</span>
+          <span aria-hidden>·</span>
+          <span>US production · Retail</span>
+          <span aria-hidden>·</span>
+          <span>started 8 min ago</span>
+        </div>
+      </div>
       <PrimaryButton
         onClick={onViewAffectedAgents}
         className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--slack-btn-default-bg)] focus-visible:ring-offset-1"
@@ -1586,6 +1599,7 @@ export function MissionControlTowerPanel({
   forceFleetState?: FleetState
 }) {
   const [agentHubOpen, setAgentHubOpen] = useState(false)
+  const [agentHubView, setAgentHubView] = useState<AgentHubModalView>('topology')
   const [investigatedLocal, setInvestigatedLocal] = useState(false)
   const [obsScope, setObsScope] = useState<TimeScope>('1D')
   const [fleetStateLocal, setFleetStateLocal] = useState<FleetState>(getFleetStateFromUrl())
@@ -1631,12 +1645,23 @@ export function MissionControlTowerPanel({
             {isAllClear ? (
               <AllClearAlertStrip />
             ) : (
-              <IncidentAlertStrip onViewAffectedAgents={() => setAgentHubOpen(true)} />
+              <IncidentAlertStrip
+                onViewAffectedAgents={() => {
+                  setAgentHubView('usw7-detail')
+                  setAgentHubOpen(true)
+                }}
+              />
             )}
           </div>
 
           <div className="mc-hero-segment mc-hero-segment--map">
-            <AgentFleetMap onSelectProblem={() => setAgentHubOpen(true)} fleetState={fleetState} />
+            <AgentFleetMap
+              onSelectProblem={() => {
+                setAgentHubView('topology')
+                setAgentHubOpen(true)
+              }}
+              fleetState={fleetState}
+            />
           </div>
 
           {isAllClear && (
@@ -1669,6 +1694,7 @@ export function MissionControlTowerPanel({
         <AgentHubModal
           onInvestigate={handleInvestigate}
           onClose={() => setAgentHubOpen(false)}
+          initialView={agentHubView}
         />
       )}
     </div>
