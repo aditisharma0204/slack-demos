@@ -8,7 +8,6 @@ import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
 import { PermissionsEvalCard } from '@/components/governance/PermissionsEvalCard'
 import { TimeScopeToggle, type TimeScope } from '@/components/governance/TimeScopeToggle'
 import {
-  DestructivePrimaryButton,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui/DesignSystemButtons'
@@ -1470,12 +1469,16 @@ function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: ()
           <span>started 8 min ago</span>
         </div>
       </div>
-      <DestructivePrimaryButton
+      <button
+        type="button"
         onClick={onViewAffectedAgents}
-        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mc-critical)] focus-visible:ring-offset-1"
+        className="mc-alert-cta"
       >
         View affected agents
-      </DestructivePrimaryButton>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+          <path d="M4.5 2.25L8.25 6L4.5 9.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </div>
   )
 }
