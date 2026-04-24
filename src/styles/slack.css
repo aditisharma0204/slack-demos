@@ -2260,6 +2260,17 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
 .mission-control-canvas .mc-alert-strip--critical .mc-alert-severity-chip {
   background: var(--mc-critical);
 }
+/* Align the destructive CTA's red with the chip + icon ring so the entire
+   strip reads as one severity tone. The DestructivePrimaryButton sets its
+   bg via inline style (--slack-btn-danger-bg = #e01e5a), so we need
+   !important to beat the inline value. Scoped to the critical strip only,
+   so destructive buttons elsewhere keep the design-system pink. */
+.mission-control-canvas .mc-alert-strip--critical button {
+  background-color: var(--mc-critical) !important;
+}
+.mission-control-canvas .mc-alert-strip--critical button:hover {
+  background-color: color-mix(in srgb, var(--mc-critical) 92%, white) !important;
+}
 
 .mission-control-canvas .mc-alert-icon {
   display: flex;

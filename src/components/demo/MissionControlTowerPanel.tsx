@@ -1495,7 +1495,7 @@ function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: ()
       </div>
       <DestructivePrimaryButton
         onClick={onViewAffectedAgents}
-        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--slack-btn-danger-bg)] focus-visible:ring-offset-1"
+        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mc-critical)] focus-visible:ring-offset-1"
       >
         View affected agents
       </DestructivePrimaryButton>
