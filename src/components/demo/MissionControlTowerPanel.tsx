@@ -670,6 +670,18 @@ function AgentFleetMap({
             ? 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--critical'
             : 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--warning'
 
+          // Leaflet's `setStyle()` (which react-leaflet calls on every prop
+          // update) silently strips the `pathOptions.className`, so any
+          // re-render of the parent quietly drops our animation classes
+          // and the pulse stops working. Workaround: stamp the classes
+          // directly onto the SVG path on the `add` event, which fires
+          // once when the layer mounts and bypasses setStyle entirely.
+          const stampClasses = (classes: string) => (e: { target: { getElement?: () => SVGElement | null } }) => {
+            const el = e.target.getElement?.()
+            if (!el) return
+            classes.split(/\s+/).filter(Boolean).forEach((c) => el.classList.add(c))
+          }
+
           return (
             <Fragment key={s.id}>
               <CircleMarker
@@ -684,6 +696,7 @@ function AgentFleetMap({
                   weight: 0,
                   opacity: 0,
                 }}
+                eventHandlers={{ add: stampClasses(outerClass) }}
               />
               <CircleMarker
                 center={[s.lat, s.lng]}
@@ -697,6 +710,7 @@ function AgentFleetMap({
                   weight: 0,
                   opacity: 0,
                 }}
+                eventHandlers={{ add: stampClasses(midClass) }}
               />
               <CircleMarker
                 center={[s.lat, s.lng]}
@@ -711,6 +725,7 @@ function AgentFleetMap({
                   opacity: 1,
                 }}
                 eventHandlers={{
+                  add: stampClasses(pinClass),
                   click: (e) => {
                     e.originalEvent?.stopPropagation?.()
                     onSelectProblem(s)
