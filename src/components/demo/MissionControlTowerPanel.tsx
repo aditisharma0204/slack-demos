@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, ZoomControl } from 'react-leaflet'
 import type { LatLngBoundsExpression, LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -6,10 +6,15 @@ import 'leaflet/dist/leaflet.css'
 import { ChatHeader } from '@/components/chat/ChatHeader'
 import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
 import { PermissionsEvalCard } from '@/components/governance/PermissionsEvalCard'
-import { PolicyChipWithImpact } from '@/components/governance/PolicyChip'
 import { TimeScopeToggle, type TimeScope } from '@/components/governance/TimeScopeToggle'
-import { SecondaryButton } from '@/components/ui/DesignSystemButtons'
+import {
+  DestructiveSecondaryButton,
+  PrimaryButton,
+  SecondaryPrimaryButton,
+} from '@/components/ui/DesignSystemButtons'
 import { getFleetStateFromUrl, type FleetState } from '@/data/governance/missionControlState'
+
+type FleetSiteSeverity = 'critical' | 'warning'
 
 type FleetSite = {
   id: string
@@ -17,6 +22,11 @@ type FleetSite = {
   lng: number
   ok: boolean
   label: string
+  /**
+   * For non-OK sites: 'critical' = red epicenter, 'warning' = amber echo.
+   * Defaults to 'critical' when omitted to preserve existing call sites.
+   */
+  severity?: FleetSiteSeverity
 }
 
 function mulberry32(seed: number) {
@@ -43,9 +53,30 @@ function buildNorthAmericaFleetSites(): FleetSite[] {
     })
   }
   const reds: FleetSite[] = [
-    { id: 'critical-midwest', lat: 39.1, lng: -94.58, ok: false, label: 'US Central · retrieval degraded' },
-    { id: 'critical-south', lat: 32.78, lng: -96.8, ok: false, label: 'US South · policy strain' },
-    { id: 'critical-east', lat: 40.72, lng: -74.02, ok: false, label: 'US East · Order Processing breach' },
+    {
+      id: 'critical-midwest',
+      lat: 39.1,
+      lng: -94.58,
+      ok: false,
+      severity: 'critical',
+      label: 'USC-3 · Order Processing breach (epicenter)',
+    },
+    {
+      id: 'critical-east',
+      lat: 40.72,
+      lng: -74.02,
+      ok: false,
+      severity: 'warning',
+      label: 'USE-1 · Order Processing — elevated warnings',
+    },
+    {
+      id: 'critical-south',
+      lat: 32.78,
+      lng: -96.8,
+      ok: false,
+      severity: 'warning',
+      label: 'USS-2 · Order Processing — elevated warnings',
+    },
   ]
   return [...greens, ...reds]
 }
@@ -74,36 +105,6 @@ function MapResizeInvalidator() {
     }
   }, [map])
   return null
-}
-
-function WarningsSparkline({ gradId }: { gradId: string }) {
-  const h = 52
-  const w = 128
-  const pts = [40, 34, 30, 36, 24, 20, 10]
-  const step = w / (pts.length - 1)
-  const d = pts.map((y, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${y}`).join(' ')
-  return (
-    <figure className="flex flex-col items-start justify-start gap-1 m-0">
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0" aria-hidden>
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--mc-critical)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--mc-critical)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={`${d} L ${w} ${h} L 0 ${h} Z`} fill={`url(#${gradId})`} />
-        <path
-          d={d}
-          fill="none"
-          stroke="var(--mc-critical)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <figcaption className="mc-type-caption text-right m-0">Last 24h · sampled every 15m</figcaption>
-    </figure>
-  )
 }
 
 function FleetStatsGrid() {
@@ -548,48 +549,96 @@ function AgentFleetMap({
           maxZoom={20}
         />
         <ZoomControl position="bottomright" />
-        {sites.map((s) =>
-          s.ok ? (
-            <CircleMarker
-              key={s.id}
-              center={[s.lat, s.lng]}
-              radius={4}
-              pathOptions={{
-                interactive: false,
-                fillColor: '#007a5a',
-                fillOpacity: 0.92,
-                color: '#ffffff',
-                weight: 1.25,
-                opacity: 1,
-              }}
-            />
-          ) : (
-            <CircleMarker
-              key={s.id}
-              center={[s.lat, s.lng]}
-              radius={9}
-              pathOptions={{
-                interactive: true,
-                className: 'mc-map-leaflet-critical-pin',
-                fillColor: '#c0132f',
-                fillOpacity: 1,
-                color: '#ffffff',
-                weight: 2,
-                opacity: 1,
-              }}
-              eventHandlers={{
-                click: (e) => {
-                  e.originalEvent?.stopPropagation?.()
-                  onSelectProblem(s)
-                },
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -6]} opacity={0.95} sticky>
-                {s.label}
-              </Tooltip>
-            </CircleMarker>
+        {sites.map((s) => {
+          if (s.ok) {
+            return (
+              <CircleMarker
+                key={s.id}
+                center={[s.lat, s.lng]}
+                radius={4}
+                pathOptions={{
+                  interactive: false,
+                  fillColor: '#007a5a',
+                  fillOpacity: 0.92,
+                  color: '#ffffff',
+                  weight: 1.25,
+                  opacity: 1,
+                }}
+              />
+            )
+          }
+
+          // Critical = red epicenter; warning = amber echo.
+          const isCritical = (s.severity ?? 'critical') === 'critical'
+          const corePin = isCritical ? '#c0132f' : '#d97706'
+          // Outer ring is the largest "blast radius" halo. Middle is a softer
+          // mid-band. Both pulse from the center via CSS keyframes — Leaflet
+          // doesn't animate stroke/radius natively, so we drive it through
+          // class names + transform on the SVG path.
+          const outerClass = isCritical
+            ? 'mc-map-blast-ring mc-map-blast-ring--critical mc-map-blast-ring--outer'
+            : 'mc-map-blast-ring mc-map-blast-ring--warning mc-map-blast-ring--outer'
+          const midClass = isCritical
+            ? 'mc-map-blast-ring mc-map-blast-ring--critical mc-map-blast-ring--mid'
+            : 'mc-map-blast-ring mc-map-blast-ring--warning mc-map-blast-ring--mid'
+          const pinClass = isCritical
+            ? 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--critical'
+            : 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--warning'
+
+          return (
+            <Fragment key={s.id}>
+              <CircleMarker
+                center={[s.lat, s.lng]}
+                radius={28}
+                pathOptions={{
+                  interactive: false,
+                  className: outerClass,
+                  fillColor: corePin,
+                  fillOpacity: 0.18,
+                  color: corePin,
+                  weight: 0,
+                  opacity: 0,
+                }}
+              />
+              <CircleMarker
+                center={[s.lat, s.lng]}
+                radius={16}
+                pathOptions={{
+                  interactive: false,
+                  className: midClass,
+                  fillColor: corePin,
+                  fillOpacity: 0.28,
+                  color: corePin,
+                  weight: 0,
+                  opacity: 0,
+                }}
+              />
+              <CircleMarker
+                center={[s.lat, s.lng]}
+                radius={isCritical ? 9 : 7}
+                pathOptions={{
+                  interactive: true,
+                  className: pinClass,
+                  fillColor: corePin,
+                  fillOpacity: 1,
+                  color: '#ffffff',
+                  weight: 2,
+                  opacity: 1,
+                }}
+                eventHandlers={{
+                  click: (e) => {
+                    e.originalEvent?.stopPropagation?.()
+                    onSelectProblem(s)
+                  },
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -6]} opacity={0.95} sticky>
+                  {s.label}
+                </Tooltip>
+              </CircleMarker>
+            </Fragment>
           )
-        )}
+        })}
       </MapContainer>
 
       <div className="mc-map-floating-chrome">
@@ -608,8 +657,13 @@ function AgentFleetMap({
             <>
               <span className="opacity-35">|</span>
               <span className="inline-flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: '#d97706' }} />
+                Warning
+              </span>
+              <span className="opacity-35">|</span>
+              <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full shrink-0 ring-1 ring-black/10" style={{ backgroundColor: 'var(--mc-critical)' }} />
-                Issue
+                Critical
               </span>
             </>
           )}
@@ -929,6 +983,252 @@ function ModalCloseButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+/**
+ * Decision-grade card that combines the critical agent header, the metrics an
+ * IT director needs to choose between **Investigate** and **Stop traffic**,
+ * the cascade into dependent agents, and the CTA pair — all as one block. The
+ * design principle: the operator should never have to swap eyes between two
+ * cards to make this call. Everything that informs the choice lives here.
+ */
+function IncidentDecisionCard({
+  critical,
+  dependents,
+  onInvestigate,
+  onStopTraffic,
+}: {
+  critical: { name: string; sub: string; statusLabel: string }
+  dependents: { name: string; sub: string; statusLabel: string }[]
+  onInvestigate: () => void
+  onStopTraffic: () => void
+}) {
+  // Decision metrics. These are the three numbers that change the answer to
+  // "do I stop traffic right now or do I investigate first?". Kept to three
+  // because four becomes a wall and the operator stops scanning.
+  const metrics: { label: string; value: string; sub: string; tone: 'critical' | 'neutral' }[] = [
+    {
+      label: 'Customers affected',
+      value: '~420',
+      sub: 'per hour, right now',
+      tone: 'critical',
+    },
+    {
+      label: 'Revenue at risk',
+      value: '$180k',
+      sub: 'per hour exposure',
+      tone: 'critical',
+    },
+    {
+      label: 'Trend',
+      value: '↗ Worsening',
+      sub: '+12 warnings/min over last 8 min',
+      tone: 'critical',
+    },
+  ]
+
+  // Hand-tuned downstream impact notes per dependent. Written for an IT
+  // director — what they feel (slow customers, untrusted scores), not what an
+  // SRE measures (p95, drift detector). Kept on this component, not on
+  // USW7_AGENTS, because the framing is causal and only makes sense with an
+  // upstream critical agent. Lift into a per-incident lookup if a second
+  // critical scenario gets added.
+  const impactCopy: Record<string, { headline: string; detail: string }> = {
+    'LLM Routing Agent': {
+      headline: 'Customer requests are slower',
+      detail:
+        'This agent keeps retrying the broken answers from Order Processing. Customer wait time is up about 37% in the last 8 minutes.',
+    },
+    'Evaluator Agent': {
+      headline: 'Quality scores are unreliable',
+      detail:
+        'The broken answers are mixing into the data this agent uses to grade other agents, so its scoring is skewed until Order Processing is fixed.',
+    },
+  }
+
+  return (
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        border: '1px solid var(--mc-critical-soft-border)',
+        backgroundColor: 'var(--mc-critical-soft-bg)',
+      }}
+    >
+      {/* Header — agent identity + status pill + when it started. The 'Started'
+          stamp is the second-most important piece of information after the
+          status, because it tells the operator how much pressure they're under. */}
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span
+                className="inline-block size-2 rounded-full shrink-0"
+                style={{ backgroundColor: statusColor('critical') }}
+              />
+              <span
+                className="text-[11px] font-medium"
+                style={{ color: statusColor('critical') }}
+              >
+                {critical.statusLabel}
+              </span>
+            </div>
+            <div
+              className="text-[15px] font-semibold m-0"
+              style={{ color: 'var(--slack-text)' }}
+            >
+              {critical.name}
+            </div>
+            <div
+              className="text-xs mt-0.5 m-0"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              {critical.sub}
+            </div>
+          </div>
+          <span
+            className="text-[11px] font-medium shrink-0"
+            style={{ color: 'var(--slack-msg-muted)' }}
+          >
+            Started 8 min ago
+          </span>
+        </div>
+      </div>
+
+      {/* Decision metrics — the three numbers that change the answer to
+          "stop traffic now, or investigate first?". */}
+      <div
+        className="grid grid-cols-3 gap-px"
+        style={{
+          backgroundColor: 'var(--mc-critical-soft-border)',
+          borderTop: '1px solid var(--mc-critical-soft-border)',
+          borderBottom: '1px solid var(--mc-critical-soft-border)',
+        }}
+      >
+        {metrics.map((m) => (
+          <div
+            key={m.label}
+            className="px-3 py-2.5"
+            style={{ backgroundColor: 'var(--mc-critical-soft-bg)' }}
+          >
+            <div
+              className="text-[10px] font-semibold uppercase tracking-[0.05em] m-0"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              {m.label}
+            </div>
+            <div
+              className="text-[17px] font-bold leading-tight mt-0.5 m-0"
+              style={{
+                color: m.tone === 'critical' ? 'var(--mc-critical)' : 'var(--slack-text)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {m.value}
+            </div>
+            <div
+              className="text-[11px] mt-0.5 m-0"
+              style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.35 }}
+            >
+              {m.sub}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Downstream impact — same incident, just told as "and here's who else
+          is hurting because of it". Subsection inside the same card so the
+          operator never reads it as separate from the metrics above. */}
+      {dependents.length > 0 && (
+        <div className="px-4 pt-3 pb-1">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.06em]"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              Downstream impact &middot; {dependents.length} other agents affected
+            </span>
+          </div>
+          <p
+            className="text-xs m-0 mb-2"
+            style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.5 }}
+          >
+            These will recover on their own once Order Processing is fixed &mdash;
+            no separate action needed for them.
+          </p>
+          <ul className="m-0 p-0 list-none space-y-1.5">
+            {dependents.map((d) => {
+              const copy = impactCopy[d.name]
+              return (
+                <li
+                  key={d.name}
+                  className="flex gap-2 items-start"
+                  style={{
+                    paddingTop: 7,
+                    borderTop: '1px solid rgba(192, 19, 47, 0.12)',
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="inline-block shrink-0 mt-1.5"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--mc-warn-amber)',
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span
+                        className="text-[13px] font-semibold"
+                        style={{ color: 'var(--slack-text)' }}
+                      >
+                        {d.name}
+                      </span>
+                      <span
+                        className="text-[11px] font-medium"
+                        style={{ color: 'var(--mc-warn-amber)' }}
+                      >
+                        {copy?.headline ?? d.statusLabel}
+                      </span>
+                    </div>
+                    <p
+                      className="text-xs m-0 mt-0.5"
+                      style={{ color: 'var(--slack-msg-muted)', lineHeight: 1.45 }}
+                    >
+                      {copy?.detail ?? d.sub}
+                    </p>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* CTAs — outline pair so neither button forces the operator's hand.
+          Investigate is on the left because the safer default is "look first". */}
+      <div
+        className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+        style={{ borderTop: '1px solid var(--mc-critical-soft-border)' }}
+      >
+        <span
+          className="text-[11px] m-0"
+          style={{ color: 'var(--slack-msg-muted)' }}
+        >
+          Stopping traffic also pauses the {dependents.length} downstream agents.
+        </span>
+        <div className="flex items-center gap-2">
+          <SecondaryPrimaryButton onClick={onInvestigate}>
+            Investigate
+          </SecondaryPrimaryButton>
+          <DestructiveSecondaryButton onClick={onStopTraffic}>
+            Stop traffic
+          </DestructiveSecondaryButton>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AgentUSW7Detail({ onInvestigate, onClose }: { onInvestigate: () => void; onClose: () => void }) {
   const criticalCount = USW7_AGENTS.filter((a) => a.status === 'critical').length
   const warningCount = USW7_AGENTS.filter((a) => a.status === 'warning').length
@@ -960,41 +1260,62 @@ function AgentUSW7Detail({ onInvestigate, onClose }: { onInvestigate: () => void
         <ModalCloseButton onClick={onClose} />
       </header>
       <div className="px-4 py-3 space-y-2 overflow-auto flex-1 min-h-0">
-        {USW7_AGENTS.map((agent) => {
-          const borderColor = agent.status === 'critical' ? 'var(--mc-critical-soft-border)' : agent.status === 'warning' ? '#f0d9a8' : 'var(--slack-border)'
-          const bgColor = agent.status === 'critical' ? 'var(--mc-critical-soft-bg)' : agent.status === 'warning' ? '#fffaf0' : 'var(--slack-pane-bg)'
+        {/* Single decision-grade card combining the critical agent header,
+            the metrics that inform the Stop-traffic-vs-Investigate call, the
+            downstream cascade, and the CTA pair. The operator never has to
+            swap eyes between two cards to make this decision. */}
+        {(() => {
+          const critical = USW7_AGENTS.find((a) => a.status === 'critical')
+          if (!critical) return null
           return (
-            <div
-              key={agent.name}
-              className="rounded-lg px-4 py-3"
-              style={{ border: `1px solid ${borderColor}`, backgroundColor: bgColor }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="inline-block size-2 rounded-full shrink-0" style={{ backgroundColor: statusColor(agent.status) }} />
-                    <span className="text-[11px] font-medium" style={{ color: statusColor(agent.status) }}>{agent.statusLabel}</span>
-                  </div>
-                  <div className="text-sm font-semibold m-0" style={{ color: 'var(--slack-text)' }}>{agent.name}</div>
-                  <div className="text-xs mt-0.5 m-0" style={{ color: 'var(--slack-msg-muted)' }}>{agent.sub}</div>
-                </div>
-              </div>
-              {agent.actionLabel && (
-                <button
-                  type="button"
-                  className={
-                    agent.status === 'critical'
-                      ? 'mc-cta mc-cta--primary mt-3'
-                      : 'mc-cta mc-cta--secondary mt-3'
-                  }
-                  onClick={onInvestigate}
-                >
-                  {agent.actionLabel}
-                </button>
-              )}
-            </div>
+            <IncidentDecisionCard
+              critical={critical}
+              dependents={USW7_AGENTS.filter((a) => a.status === 'warning')}
+              onInvestigate={onInvestigate}
+              onStopTraffic={() => {
+                /* UI-only kill switch on this surface; the wired containment
+                   flow lives inside the Mission Control Agent thread. */
+              }}
+            />
           )
-        })}
+        })()}
+
+        {/* Healthy dependents — kept compact so the eye doesn't linger on them. */}
+        {USW7_AGENTS.filter((a) => a.status === 'ok').map((agent) => (
+          <div
+            key={agent.name}
+            className="rounded-lg px-4 py-3"
+            style={{
+              border: '1px solid var(--slack-border)',
+              backgroundColor: 'var(--slack-pane-bg)',
+            }}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span
+                className="inline-block size-2 rounded-full shrink-0"
+                style={{ backgroundColor: statusColor(agent.status) }}
+              />
+              <span
+                className="text-[11px] font-medium"
+                style={{ color: statusColor(agent.status) }}
+              >
+                {agent.statusLabel}
+              </span>
+            </div>
+            <div
+              className="text-sm font-semibold m-0"
+              style={{ color: 'var(--slack-text)' }}
+            >
+              {agent.name}
+            </div>
+            <div
+              className="text-xs mt-0.5 m-0"
+              style={{ color: 'var(--slack-msg-muted)' }}
+            >
+              {agent.sub}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -1050,7 +1371,7 @@ function AgentHubModal({
 
 /* ─── Hero segment subcomponents ─────────────────────────────────────────── */
 
-function IncidentAlertStrip({ onViewAlerts }: { onViewAlerts: () => void }) {
+function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: () => void }) {
   return (
     <div className="mc-alert-strip" role="status">
       <span className="mc-alert-icon" aria-hidden>
@@ -1061,20 +1382,20 @@ function IncidentAlertStrip({ onViewAlerts }: { onViewAlerts: () => void }) {
         </svg>
       </span>
       <p className="mc-alert-text">
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>4 open alerts</strong>
-        <span className="mx-1.5" aria-hidden>·</span>
         <strong style={{ color: 'var(--mc-warn-amber)' }}>1 critical</strong>
+        <span className="mx-1 opacity-60" aria-hidden>+</span>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>2 warning</strong>
         <span className="mx-1.5" aria-hidden>·</span>
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>4 operational zones</strong>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>Order Processing Agent</strong>
         <span className="mx-1.5" aria-hidden>·</span>
-        <strong style={{ color: 'var(--mc-warn-amber)' }}>Top: Retrieval degraded</strong>
+        <strong style={{ color: 'var(--mc-warn-amber)' }}>Domain restriction policy breach</strong>
       </p>
-      <SecondaryButton
-        onClick={onViewAlerts}
-        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mc-accent)] focus-visible:ring-offset-1"
+      <PrimaryButton
+        onClick={onViewAffectedAgents}
+        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--slack-btn-default-bg)] focus-visible:ring-offset-1"
       >
-        View alerts
-      </SecondaryButton>
+        View affected agents
+      </PrimaryButton>
     </div>
   )
 }
@@ -1096,61 +1417,6 @@ function AllClearAlertStrip() {
         <span className="mx-1.5" aria-hidden>·</span>
         <strong>Last incident: 2d ago</strong>
       </p>
-    </div>
-  )
-}
-
-function IncidentBlock({ warnGradId }: { warnGradId: string }) {
-  return (
-    <div className="mc-hero-incident">
-      <div className="mc-incident-meta">
-        <span className="mc-incident-num">01</span>
-        <span className="mc-incident-kicker">Critical incident</span>
-        <span className="mc-incident-loc">USW-7 · Production fleet</span>
-      </div>
-
-      <h3 className="mc-incident-title">Order Processing Agent — policy breach</h3>
-
-      <div className="mc-incident-grid">
-        <ul className="mc-incident-facts">
-          <li>
-            <span className="mc-incident-facts__k">Symptom</span>
-            <span>Off-topic responses at <strong>3 warnings/min</strong></span>
-          </li>
-          <li>
-            <span className="mc-incident-facts__k">Policy</span>
-            <span>
-              Domain must stay within assignment{' '}
-              <PolicyChipWithImpact policyRef="POL-AGT-DOMAIN-REM-03" />
-            </span>
-          </li>
-          <li>
-            <span className="mc-incident-facts__k">Apps</span>
-            <span>Order Processing, Checkout Assist <em className="not-italic" style={{ color: 'var(--slack-msg-muted)' }}>(read-only)</em></span>
-          </li>
-        </ul>
-
-        <div className="mc-incident-visual">
-          <span className="mc-incident-visual__label">Warnings · last 60s</span>
-          <span className="mc-incident-visual__value">3</span>
-          <WarningsSparkline gradId={warnGradId} />
-        </div>
-      </div>
-
-      <div className="mc-incident-impact">
-        <div className="mc-incident-impact__cell">
-          <span className="mc-incident-impact__v">~420</span>
-          <span className="mc-incident-impact__l">Users / hr exposed</span>
-        </div>
-        <div className="mc-incident-impact__cell">
-          <span className="mc-incident-impact__v" style={{ color: 'var(--mc-critical)' }}>$180k</span>
-          <span className="mc-incident-impact__l">Revenue at risk / hr</span>
-        </div>
-        <div className="mc-incident-impact__cell">
-          <span className="mc-incident-impact__v">USW-7</span>
-          <span className="mc-incident-impact__l">Cluster</span>
-        </div>
-      </div>
     </div>
   )
 }
@@ -1239,14 +1505,12 @@ export function MissionControlTowerPanel({
    */
   forceFleetState?: FleetState
 }) {
-  const liveIncidentRef = useRef<HTMLDivElement>(null)
   const [agentHubOpen, setAgentHubOpen] = useState(false)
   const [investigatedLocal, setInvestigatedLocal] = useState(false)
   const [obsScope, setObsScope] = useState<TimeScope>('1D')
   const [fleetStateLocal, setFleetStateLocal] = useState<FleetState>(getFleetStateFromUrl())
   const fleetState = forceFleetState ?? fleetStateLocal
   const gradIdBase = useId().replace(/:/g, '_')
-  const warnGradId = `mcwg_${gradIdBase}`
   const isAllClear = fleetState === 'all_clear'
   const investigated = investigatedLocal || forceInvestigated
 
@@ -1255,10 +1519,6 @@ export function MissionControlTowerPanel({
     const onPop = () => setFleetStateLocal(getFleetStateFromUrl())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [])
-
-  const scrollToIncident = useCallback(() => {
-    liveIncidentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
   const handleInvestigate = useCallback(() => {
@@ -1288,22 +1548,22 @@ export function MissionControlTowerPanel({
             {isAllClear ? 'Fleet status — all clear' : 'Incident response'}
           </h2>
           <div className="mc-hero-segment">
-            {isAllClear ? <AllClearAlertStrip /> : <IncidentAlertStrip onViewAlerts={scrollToIncident} />}
+            {isAllClear ? (
+              <AllClearAlertStrip />
+            ) : (
+              <IncidentAlertStrip onViewAffectedAgents={() => setAgentHubOpen(true)} />
+            )}
           </div>
 
           <div className="mc-hero-segment mc-hero-segment--map">
             <AgentFleetMap onSelectProblem={() => setAgentHubOpen(true)} fleetState={fleetState} />
           </div>
 
-          <div className="mc-hero-segment">
-            <div ref={liveIncidentRef}>
-              {isAllClear ? (
-                <AllClearHighlight />
-              ) : (
-                <IncidentBlock warnGradId={warnGradId} />
-              )}
+          {isAllClear && (
+            <div className="mc-hero-segment">
+              <AllClearHighlight />
             </div>
-          </div>
+          )}
 
           <FleetStatsGrid />
 

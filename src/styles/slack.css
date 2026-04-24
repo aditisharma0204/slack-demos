@@ -281,6 +281,114 @@
 
 .mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin {
   cursor: pointer;
+  /* Pulse draws attention without dragging the eye away from the rest of the
+     dashboard. transform-origin must be set so SVG paths scale around the pin
+     center rather than the SVG origin (top-left). */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mc-map-pin-pulse 1.6s ease-in-out infinite;
+}
+
+.mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin:hover {
+  /* Pause the pulse on hover so the tooltip reads cleanly without movement. */
+  animation-play-state: paused;
+}
+
+@keyframes mc-map-pin-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.85;
+  }
+}
+
+/* Blast-radius halos. Two concentric rings expand and fade to suggest the
+   spread of impact from each affected cluster. The base path is rendered
+   non-interactive by Leaflet (we set weight:0, opacity:0) and we drive the
+   visible state entirely from the keyframes so we can animate fillOpacity +
+   transform together. The two ring tiers (--outer / --mid) have different
+   delays and amplitudes so the effect reads as a single continuous wave. */
+.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--outer {
+  animation: mc-map-blast-outer 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--mid {
+  animation: mc-map-blast-mid 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes mc-map-blast-outer {
+  0% {
+    transform: scale(0.35);
+    fill-opacity: 0.32;
+  }
+  70% {
+    fill-opacity: 0.06;
+  }
+  100% {
+    transform: scale(1);
+    fill-opacity: 0;
+  }
+}
+
+@keyframes mc-map-blast-mid {
+  0% {
+    transform: scale(0.35);
+    fill-opacity: 0.42;
+  }
+  70% {
+    fill-opacity: 0.1;
+  }
+  100% {
+    transform: scale(1);
+    fill-opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin,
+  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring {
+    animation: none;
+  }
+  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--outer,
+  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--mid {
+    /* Without animation, hold the rings at a faint static glow so the blast
+       radius is still legible. */
+    fill-opacity: 0.16;
+  }
+}
+
+/* Leaflet's default tooltip is grey + bordered + serif-flavoured. Re-skin to
+   match the Mission Control chrome so the hover affordance reads intentional. */
+.mission-control-canvas .mc-map-leaflet .leaflet-tooltip {
+  background: var(--slack-text, #1d1c1d);
+  color: #ffffff;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.mission-control-canvas .mc-map-leaflet .leaflet-tooltip-top::before,
+.mission-control-canvas .mc-map-leaflet .leaflet-tooltip-bottom::before,
+.mission-control-canvas .mc-map-leaflet .leaflet-tooltip-left::before,
+.mission-control-canvas .mc-map-leaflet .leaflet-tooltip-right::before {
+  border-top-color: var(--slack-text, #1d1c1d);
+  border-bottom-color: var(--slack-text, #1d1c1d);
 }
 
 .mission-control-canvas .mc-map-floating-chrome {
@@ -767,6 +875,11 @@
 
 .mission-control-canvas .mc-alert-strip:hover {
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.mission-control-canvas .mc-alert-strip .mc-alert-text {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .mission-control-canvas .mc-grid-secondary {

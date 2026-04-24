@@ -202,6 +202,72 @@ export function DisabledButtonLarge({
   )
 }
 
+/**
+ * Outline (secondary) variant of PrimaryButton — green text + green border on
+ * a transparent / white fill. Use when a primary action sits next to a peer
+ * action of equal weight and a solid PrimaryButton would feel too loud (e.g.
+ * "Investigate" alongside "Stop traffic" in an incident card). Same 36px /
+ * 13px footprint as PrimaryButton + SecondaryButton so they line up.
+ */
+export function SecondaryPrimaryButton({
+  className = '',
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center flex-shrink-0 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition hover:bg-[color-mix(in_srgb,var(--slack-btn-default-bg)_8%,white)] ${className}`.trim()}
+      style={{
+        backgroundColor: 'transparent',
+        color: 'var(--slack-btn-default-bg)',
+        height: 36,
+        fontSize: '13px',
+        fontWeight: 600,
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: 'var(--slack-btn-default-bg)',
+      }}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * Outline (secondary) variant of NegativeButton — red text + red border on a
+ * transparent / white fill. Use for destructive actions that should still be
+ * one click away but don't deserve a solid red wall (e.g. "Stop traffic" in
+ * the agent hub modal where the primary investigative path is the safer default).
+ * Same 36px / 13px footprint as PrimaryButton + SecondaryButton.
+ */
+export function DestructiveSecondaryButton({
+  className = '',
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center flex-shrink-0 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition hover:bg-[color-mix(in_srgb,var(--slack-btn-danger-bg)_8%,white)] ${className}`.trim()}
+      style={{
+        backgroundColor: 'transparent',
+        color: 'var(--slack-btn-danger-bg)',
+        height: 36,
+        fontSize: '13px',
+        fontWeight: 600,
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: 'var(--slack-btn-danger-bg)',
+      }}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
 /** Compact secondary style used for chat message choices and case card actions (Claim Case, etc.). */
 export function SecondaryButton({
   className = '',
