@@ -1,6 +1,6 @@
-import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, ZoomControl } from 'react-leaflet'
-import type { LatLngBoundsExpression, LatLngExpression } from 'leaflet'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap, ZoomControl } from 'react-leaflet'
+import L, { type LatLngBoundsExpression, type LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import { ChatHeader } from '@/components/chat/ChatHeader'
@@ -656,87 +656,47 @@ function AgentFleetMap({
           // Critical = red epicenter; warning = amber echo.
           const isCritical = (s.severity ?? 'critical') === 'critical'
           const corePin = isCritical ? '#c0132f' : '#d97706'
-          // Outer ring is the largest "blast radius" halo. Middle is a softer
-          // mid-band. Both pulse from the center via CSS keyframes — Leaflet
-          // doesn't animate stroke/radius natively, so we drive it through
-          // class names + transform on the SVG path.
-          const outerClass = isCritical
-            ? 'mc-map-blast-ring mc-map-blast-ring--critical mc-map-blast-ring--outer'
-            : 'mc-map-blast-ring mc-map-blast-ring--warning mc-map-blast-ring--outer'
-          const midClass = isCritical
-            ? 'mc-map-blast-ring mc-map-blast-ring--critical mc-map-blast-ring--mid'
-            : 'mc-map-blast-ring mc-map-blast-ring--warning mc-map-blast-ring--mid'
-          const pinClass = isCritical
-            ? 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--critical'
-            : 'mc-map-leaflet-critical-pin mc-map-leaflet-critical-pin--warning'
+          const severityMod = isCritical ? 'mc-map-pin--critical' : 'mc-map-pin--warning'
+          const pinSize = isCritical ? 18 : 14
 
-          // Leaflet's `setStyle()` (which react-leaflet calls on every prop
-          // update) silently strips the `pathOptions.className`, so any
-          // re-render of the parent quietly drops our animation classes
-          // and the pulse stops working. Workaround: stamp the classes
-          // directly onto the SVG path on the `add` event, which fires
-          // once when the layer mounts and bypasses setStyle entirely.
-          const stampClasses = (classes: string) => (e: { target: { getElement?: () => SVGElement | null } }) => {
-            const el = e.target.getElement?.()
-            if (!el) return
-            classes.split(/\s+/).filter(Boolean).forEach((c) => el.classList.add(c))
-          }
+          // We were rendering the critical pin + halos as three SVG
+          // CircleMarkers and animating `transform: scale()` via CSS
+          // keyframes. That doesn't animate reliably on SVG paths inside
+          // Leaflet's overlay pane (transform-box: fill-box behaves
+          // unpredictably + Leaflet's `setStyle` strips `className` on
+          // every re-render). Switched to a divIcon HTML overlay where
+          // the pin and its two pulsing halo rings are plain DOM nodes;
+          // CSS animations on regular HTML elements are bulletproof.
+          const html = `
+            <div class="mc-map-pin ${severityMod}" style="--pin-color: ${corePin}; width: ${pinSize}px; height: ${pinSize}px;">
+              <span class="mc-map-pin__halo mc-map-pin__halo--outer" aria-hidden></span>
+              <span class="mc-map-pin__halo mc-map-pin__halo--mid" aria-hidden></span>
+              <span class="mc-map-pin__dot" aria-hidden></span>
+            </div>
+          `
+          const icon = L.divIcon({
+            html,
+            className: 'mc-map-pin-wrapper',
+            iconSize: [pinSize, pinSize],
+            iconAnchor: [pinSize / 2, pinSize / 2],
+          })
 
           return (
-            <Fragment key={s.id}>
-              <CircleMarker
-                center={[s.lat, s.lng]}
-                radius={28}
-                pathOptions={{
-                  interactive: false,
-                  className: outerClass,
-                  fillColor: corePin,
-                  fillOpacity: 0.18,
-                  color: corePin,
-                  weight: 0,
-                  opacity: 0,
-                }}
-                eventHandlers={{ add: stampClasses(outerClass) }}
-              />
-              <CircleMarker
-                center={[s.lat, s.lng]}
-                radius={16}
-                pathOptions={{
-                  interactive: false,
-                  className: midClass,
-                  fillColor: corePin,
-                  fillOpacity: 0.28,
-                  color: corePin,
-                  weight: 0,
-                  opacity: 0,
-                }}
-                eventHandlers={{ add: stampClasses(midClass) }}
-              />
-              <CircleMarker
-                center={[s.lat, s.lng]}
-                radius={isCritical ? 9 : 7}
-                pathOptions={{
-                  interactive: true,
-                  className: pinClass,
-                  fillColor: corePin,
-                  fillOpacity: 1,
-                  color: '#ffffff',
-                  weight: 2,
-                  opacity: 1,
-                }}
-                eventHandlers={{
-                  add: stampClasses(pinClass),
-                  click: (e) => {
-                    e.originalEvent?.stopPropagation?.()
-                    onSelectProblem(s)
-                  },
-                }}
-              >
-                <Tooltip direction="top" offset={[0, -6]} opacity={0.95} sticky>
-                  {s.label}
-                </Tooltip>
-              </CircleMarker>
-            </Fragment>
+            <Marker
+              key={s.id}
+              position={[s.lat, s.lng]}
+              icon={icon}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent?.stopPropagation?.()
+                  onSelectProblem(s)
+                },
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -6]} opacity={0.95} sticky>
+                {s.label}
+              </Tooltip>
+            </Marker>
           )
         })}
       </MapContainer>

@@ -319,96 +319,124 @@
   background: rgba(255, 255, 255, 0.82);
 }
 
-.mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin {
+/* ─── Critical / warning pin (HTML overlay, NOT SVG) ───────────────────────
+   Why HTML instead of SVG CircleMarker: Leaflet's `setStyle` ignores
+   className on path updates AND `transform: scale()` on SVG paths inside
+   Leaflet's overlay pane animates unreliably (transform-box: fill-box
+   composes badly with Leaflet's own pane transforms). Rendering the pin +
+   halos as plain HTML divs in a Leaflet divIcon sidesteps both problems —
+   CSS keyframes on regular DOM nodes are 100% reliable. */
+
+.mission-control-canvas .mc-map-pin-wrapper {
+  background: transparent;
+  border: 0;
+  pointer-events: none; /* halos are pass-through; the dot re-enables below */
+}
+
+.mission-control-canvas .mc-map-pin {
+  position: relative;
+  display: block;
+  /* width/height are set inline on the element so the iconAnchor math in JS
+     stays the source of truth for the pin's centering. */
+}
+
+.mission-control-canvas .mc-map-pin__dot {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--pin-color, #c0132f);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  pointer-events: auto; /* clickable */
   cursor: pointer;
-  /* Pulse draws attention without dragging the eye away from the rest of the
-     dashboard. transform-origin must be set so SVG paths scale around the pin
-     center rather than the SVG origin (top-left). The drop-shadow filter
-     adds a soft red glow that breathes with the scale so the pulse reads at
-     map zoom even when the pin only swings a few pixels. */
-  transform-box: fill-box;
+  /* Soft inner breath so even when the halos are scrolled past, the pin
+     itself still feels alive. */
+  animation: mc-pin-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.mission-control-canvas .mc-map-pin__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--pin-color, #c0132f);
+  opacity: 0;
+  pointer-events: none;
+  /* The halo expands outward by scaling beyond the pin's footprint. We
+     anchor it to the dot's center so it radiates symmetrically. */
   transform-origin: center;
-  animation: mc-map-pin-pulse 1.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 0 rgba(192, 19, 47, 0));
+  will-change: transform, opacity;
 }
 
-.mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin:hover {
-  /* Pause the pulse on hover so the tooltip reads cleanly without movement. */
-  animation-play-state: paused;
+.mission-control-canvas .mc-map-pin__halo--outer {
+  animation: mc-pin-halo-outer 2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
 }
 
-@keyframes mc-map-pin-pulse {
+.mission-control-canvas .mc-map-pin__halo--mid {
+  animation: mc-pin-halo-mid 2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  animation-delay: 0.6s;
+}
+
+/* Warning sites use the same pin shape but the amber palette swap happens
+   automatically via the inline --pin-color. No extra rule needed. */
+
+.mission-control-canvas .mc-map-pin:hover .mc-map-pin__dot,
+.mission-control-canvas .mc-map-pin:hover .mc-map-pin__halo {
+  animation-play-state: paused; /* let the tooltip read cleanly */
+}
+
+@keyframes mc-pin-dot-pulse {
   0%, 100% {
     transform: scale(1);
-    opacity: 1;
-    filter: drop-shadow(0 0 0 rgba(192, 19, 47, 0));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+                0 0 0 0 rgba(192, 19, 47, 0);
   }
   50% {
-    transform: scale(1.6);
-    opacity: 0.92;
-    filter: drop-shadow(0 0 6px rgba(192, 19, 47, 0.55));
+    transform: scale(1.25);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+                0 0 8px 2px rgba(192, 19, 47, 0.45);
   }
 }
 
-/* Blast-radius halos. Two concentric rings expand and fade to suggest the
-   spread of impact from each affected cluster. The base path is rendered
-   non-interactive by Leaflet (we set weight:0, opacity:0) and we drive the
-   visible state entirely from the keyframes so we can animate fillOpacity +
-   transform together. The two ring tiers (--outer / --mid) have different
-   delays and amplitudes so the effect reads as a single continuous wave. */
-.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  pointer-events: none;
-}
-
-.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--outer {
-  animation: mc-map-blast-outer 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-}
-
-.mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--mid {
-  animation: mc-map-blast-mid 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-  animation-delay: 0.4s;
-}
-
-@keyframes mc-map-blast-outer {
+@keyframes mc-pin-halo-outer {
   0% {
-    transform: scale(0.35);
-    fill-opacity: 0.5;
+    transform: scale(0.6);
+    opacity: 0.55;
   }
-  70% {
-    fill-opacity: 0.1;
+  80% {
+    opacity: 0.05;
   }
   100% {
-    transform: scale(1);
-    fill-opacity: 0;
+    transform: scale(3.6);
+    opacity: 0;
   }
 }
 
-@keyframes mc-map-blast-mid {
+@keyframes mc-pin-halo-mid {
   0% {
-    transform: scale(0.35);
-    fill-opacity: 0.6;
+    transform: scale(0.6);
+    opacity: 0.45;
   }
-  70% {
-    fill-opacity: 0.15;
+  80% {
+    opacity: 0.05;
   }
   100% {
-    transform: scale(1);
-    fill-opacity: 0;
+    transform: scale(2.4);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mission-control-canvas .mc-map-leaflet .mc-map-leaflet-critical-pin,
-  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring {
+  .mission-control-canvas .mc-map-pin__dot,
+  .mission-control-canvas .mc-map-pin__halo {
     animation: none;
   }
-  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--outer,
-  .mission-control-canvas .mc-map-leaflet .mc-map-blast-ring--mid {
-    /* Without animation, hold the rings at a faint static glow so the blast
-       radius is still legible. */
-    fill-opacity: 0.16;
+  .mission-control-canvas .mc-map-pin__halo--outer {
+    transform: scale(2.2);
+    opacity: 0.18;
+  }
+  .mission-control-canvas .mc-map-pin__halo--mid {
+    transform: scale(1.6);
+    opacity: 0.22;
   }
 }
 
