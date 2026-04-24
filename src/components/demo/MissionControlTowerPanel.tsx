@@ -174,7 +174,8 @@ function MapResizeInvalidator() {
   return null
 }
 
-function FleetStatsGrid() {
+function FleetStatsGrid({ fleetState = 'active_incident' }: { fleetState?: FleetState }) {
+  const isAllClear = fleetState === 'all_clear'
   const barData = [38, 40, 36, 42, 39, 44, 48, 54, 62, 80]
   const maxBar = Math.max(...barData)
   const trustPath = 'M 0 38 C 20 38 40 36 60 34 C 80 32 100 30 120 28 C 140 26 160 22 180 14 C 195 8 205 4 220 2'
@@ -279,15 +280,23 @@ function FleetStatsGrid() {
         <span className="mc-type-meta m-0">Canada &middot; United States &middot; Mexico</span>
         <ul className="list-none m-0 p-0 space-y-1.5 mt-1">
           {/* Severity ladder — vocabulary mirrors the fleet map legend
-              (Healthy / Warning / Critical). Zero-count rows are filtered
-              out so the user never reads "Warning 0" as a category that
+              (Healthy / Warning / Critical). Counts swap with fleet state
+              so the card never lies (e.g. "Critical 1" while the map and
+              alert strip say all-clear). Zero-count rows are filtered out
+              so the user never reads "Warning 0" as a category that
               doesn't exist in the current state. */}
           {(
-            [
-              { label: 'Healthy', count: 42, color: 'var(--mc-success)' },
-              { label: 'Critical', count: 1, color: 'var(--mc-critical)' },
-              { label: 'Warning', count: 0, color: 'var(--mc-warn-amber)' },
-            ] as const
+            isAllClear
+              ? ([
+                  { label: 'Healthy', count: 43, color: 'var(--mc-success)' },
+                  { label: 'Critical', count: 0, color: 'var(--mc-critical)' },
+                  { label: 'Warning', count: 0, color: 'var(--mc-warn-amber)' },
+                ] as const)
+              : ([
+                  { label: 'Healthy', count: 42, color: 'var(--mc-success)' },
+                  { label: 'Critical', count: 1, color: 'var(--mc-critical)' },
+                  { label: 'Warning', count: 0, color: 'var(--mc-warn-amber)' },
+                ] as const)
           )
             .filter((row) => row.count > 0)
             .map((row) => (
@@ -1670,7 +1679,7 @@ export function MissionControlTowerPanel({
             </div>
           )}
 
-          <FleetStatsGrid />
+          <FleetStatsGrid fleetState={fleetState} />
 
           <ObservabilityKpiStrip
             idBase={gradIdBase}
