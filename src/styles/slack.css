@@ -2240,6 +2240,22 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
   color: var(--mc-success);
 }
 
+/* Critical incident strip — the entire strip commits to the red severity
+   tone so the band reads as one coherent unit (icon ring, chip, CTA).
+   Pairs with the DestructivePrimaryButton in IncidentAlertStrip. */
+.mission-control-canvas .mc-alert-strip--critical {
+  background: var(--mc-critical-soft-bg);
+  border: 1px solid var(--mc-critical-soft-border);
+}
+.mission-control-canvas .mc-alert-strip--critical .mc-alert-icon {
+  background: #fdecef;
+  border-color: var(--mc-critical-soft-border);
+  color: var(--mc-critical);
+}
+.mission-control-canvas .mc-alert-strip--critical .mc-alert-severity-chip {
+  background: var(--mc-critical);
+}
+
 .mission-control-canvas .mc-alert-icon {
   display: flex;
   align-items: center;

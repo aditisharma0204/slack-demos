@@ -191,6 +191,11 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
   const overallProgress = totalDone / TOTAL_TESTS
   const livePassRate = totalDone > 0 ? (totalPassed / totalDone) * 100 : 0
 
+  // Pre-retrain delta (98.4% is the post-retrain headline figure baked into
+  // the demo). Surface as +Xpp so improvement reads as the value, not a
+  // parenthetical "was X%".
+  const finalDeltaPp = 98.4 - BASELINE_PASS_RATE
+
   return (
     <div className="ep-root flex flex-col h-full overflow-hidden">
       <style>{`
@@ -203,58 +208,191 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
         .ep-row-active { animation: ep-row-in 0.25s ease-out; }
       `}</style>
 
-      <header
-        className="px-4 pt-3 pb-2.5 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--slack-border)', backgroundColor: 'var(--slack-pane-bg)' }}
-      >
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <h3 className="mc-type-panel-h">
-              Running Evals · Order Processing Agent
-            </h3>
-            <p className="text-xs m-0 mt-0.5" style={{ color: 'var(--slack-msg-muted)' }}>
-              Retrain pipeline — gold eval suite + 72h production feedback
-            </p>
+      {/* Title removed — the InvestigationCanvas chrome (page title +
+          ServiceGraphStatusStrip) already names the agent and current
+          state, so a second "Order Processing Agent — Investigation" header
+          inside this panel was pure duplication. The inset card below leads
+          with its own "Running Evals" headline + status. */}
+      <div className="flex-1 min-h-0 overflow-auto px-7 pt-3 pb-3">
+        <div
+          className="rounded-lg p-4 flex flex-col gap-3"
+          style={{ backgroundColor: 'var(--slack-msg-hover)' }}
+        >
+          {/* Eyebrow + headline + service graph badge + meta */}
+          <div className="flex flex-col gap-1">
+            <span
+              className="text-[12px] font-bold leading-[18px]"
+              style={{ color: 'var(--mc-critical)' }}
+            >
+              Policy Breach Detected
+            </span>
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className="text-[15px] font-extrabold leading-[22px]"
+                style={{ color: 'var(--slack-text)' }}
+              >
+                Running Evals
+              </span>
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-[10px] border text-[12px] font-bold leading-[18px] whitespace-nowrap"
+                style={{
+                  color: 'var(--mc-accent)',
+                  borderColor: 'var(--mc-accent)',
+                }}
+              >
+                Service Graph USW-7
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className="text-[12px] leading-[18px] min-w-0"
+                style={{ color: 'var(--slack-msg-muted)' }}
+              >
+                Retrain pipeline &mdash; gold eval suite + 72h production feedback
+              </span>
+              {isComplete ? (
+                <span
+                  className="text-[12px] font-bold tabular-nums whitespace-nowrap shrink-0"
+                  style={{ color: 'var(--mc-success)' }}
+                  title={`Baseline ${BASELINE_PASS_RATE.toFixed(1)}%`}
+                >
+                  98.4% &nbsp;+{finalDeltaPp.toFixed(1)}pp
+                </span>
+              ) : isRetraining && totalDone > 0 ? (
+                <span
+                  className="text-[12px] font-mono tabular-nums whitespace-nowrap shrink-0"
+                  style={{ color: 'var(--slack-msg-muted)' }}
+                >
+                  {(livePassRate || 0).toFixed(1)}%
+                </span>
+              ) : null}
+            </div>
           </div>
-          <PassRateBadge
-            isRetraining={isRetraining}
-            isComplete={isComplete}
-            livePassRate={livePassRate}
-            baseline={BASELINE_PASS_RATE}
-          />
-        </div>
-        <div className="mt-2.5">
-          <ProgressBar progress={overallProgress} done={totalDone} total={TOTAL_TESTS} />
-        </div>
-      </header>
 
-      {(isRetraining || isComplete) && (
-        <CoverageCards overallProgress={overallProgress} isComplete={isComplete} />
-      )}
-
-      <div className="flex-1 min-h-0 overflow-auto px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--slack-main-bg)' }}>
-        {TESTS.map((test, idx) => {
-          const isFlaggedRow = test.id === 'conversational-flow'
-          return (
-            <EvalRow
-              key={test.id}
-              test={test}
-              state={rows[idx]}
-              reviewDecision={isFlaggedRow ? reviewDecision : 'pending'}
-              onReview={isFlaggedRow && isComplete ? handleOpenReview : undefined}
-              onUndoReview={isFlaggedRow && isComplete ? handleUndo : undefined}
+          {/* Solid 4px progress bar — green when complete, accent blue while
+              running. Figma shows the post-complete state (full green); the
+              animated mid-run state still works. */}
+          <div
+            className="h-1 rounded-lg overflow-hidden"
+            style={{ backgroundColor: 'var(--mc-tier2-border)' }}
+          >
+            <div
+              className="h-full rounded-lg"
+              style={{
+                width: `${Math.round(overallProgress * 100)}%`,
+                backgroundColor: overallProgress >= 1 ? 'var(--mc-success)' : 'var(--mc-accent)',
+                transition: 'width 0.3s ease, background-color 0.3s ease',
+              }}
             />
-          )
-        })}
+          </div>
 
-        {isComplete && (
-          <CompletionSummary
-            totalPassed={totalPassed}
-            totalFailed={totalFailed}
-            reviewDecision={reviewDecision}
-          />
-        )}
+          {/* Coverage — three column figures, no card chrome. Color of the
+              number carries the signal (success vs. flagged). During the
+              live run, numbers tick up in primary text. */}
+          <div className="flex flex-col gap-2">
+            <span
+              className="text-[13px] font-bold leading-[18px]"
+              style={{ color: 'var(--slack-text)' }}
+            >
+              Eval suite coverage
+            </span>
+            <div className="grid grid-cols-3 gap-4">
+              {COVERAGE.map((c) => {
+                const passing = isComplete
+                  ? c.total - c.finalFailed
+                  : Math.min(c.total, Math.round(c.total * overallProgress))
+                const isFlagged = isComplete && c.finalFailed > 0
+                const figureColor = isComplete
+                  ? isFlagged
+                    ? 'var(--mc-critical)'
+                    : 'var(--mc-success)'
+                  : 'var(--slack-text)'
+                return (
+                  <div key={c.id} className="flex flex-col gap-0.5 min-w-0">
+                    <span
+                      className="text-[13px] font-bold leading-[18px] truncate"
+                      style={{ color: 'var(--slack-msg-muted)' }}
+                    >
+                      {c.label}
+                    </span>
+                    <span
+                      className="text-[18px] font-extrabold leading-[24px] tabular-nums"
+                      style={{ color: figureColor, transition: 'color 0.3s ease' }}
+                    >
+                      {passing}/{c.total}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="h-px w-full" style={{ backgroundColor: 'var(--slack-border)' }} />
+
+          {/* Test rows — minimal two-line layout per Figma (label + status
+              right; count line below). */}
+          <div className="flex flex-col gap-1">
+            {TESTS.map((test, idx) => {
+              const isFlaggedRow = test.id === 'conversational-flow'
+              return (
+                <TestRow
+                  key={test.id}
+                  test={test}
+                  state={rows[idx]}
+                  reviewDecision={isFlaggedRow ? reviewDecision : 'pending'}
+                />
+              )
+            })}
+          </div>
+
+          {isComplete && (
+            <div className="flex flex-col gap-0.5 mt-1">
+              <span
+                className="text-[15px] font-extrabold leading-[22px]"
+                style={{ color: 'var(--slack-text)' }}
+              >
+                Quality Gate
+              </span>
+              <p
+                className="text-[13px] font-bold leading-[18px] m-0"
+                style={{ color: 'var(--slack-msg-muted)' }}
+              >
+                {qualityGateBody(totalPassed, totalFailed, reviewDecision)}
+              </p>
+              <p
+                className="text-[12px] font-bold leading-[18px] m-0"
+                style={{ color: 'var(--slack-msg-muted)' }}
+              >
+                {reviewDecision === 'pending'
+                  ? 'Resolve the flagged case to unlock deploy'
+                  : 'Ready to deploy'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Footer band — single right-aligned action.
+            • pending  → outline "Review" opens the flagged-case modal
+            • resolved → small audit acknowledgement + Undo text link
+          During the live run there's no footer (the panel auto-fills). */}
+      {isComplete && reviewDecision === 'pending' && (
+        <footer className="px-7 py-5 flex items-center justify-end gap-3 flex-shrink-0">
+          <SecondaryButton onClick={handleOpenReview}>Review</SecondaryButton>
+        </footer>
+      )}
+      {isComplete && reviewDecision !== 'pending' && (
+        <footer className="px-7 py-5 flex items-center justify-end gap-3 flex-shrink-0">
+          <span className="text-[12px]" style={{ color: 'var(--slack-msg-muted)' }}>
+            {reviewDecision === 'accepted'
+              ? 'Reviewed and accepted by you'
+              : 'Flag acknowledged for next training round'}
+          </span>
+          <TextLinkButton variant="secondary" onClick={handleUndo} className="text-[12px]">
+            Undo
+          </TextLinkButton>
+        </footer>
+      )}
 
       {reviewModalOpen && (
         <FlaggedCaseReviewModal
@@ -267,440 +405,144 @@ export function EvalsPanel({ phase }: { phase: ServicePhase }) {
   )
 }
 
-function PassRateBadge({
-  isRetraining,
-  isComplete,
-  livePassRate,
-  baseline,
-}: {
-  isRetraining: boolean
-  isComplete: boolean
-  livePassRate: number
-  baseline: number
-}) {
-  if (isComplete) {
-    const delta = 98.4 - baseline
-    return (
-      <div className="text-right">
-        <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--slack-msg-muted)' }}>
-          Pass rate
-        </div>
-        <div className="flex items-baseline justify-end gap-1.5">
-          <span className="text-base font-extrabold" style={{ color: 'var(--mc-success)' }}>
-            98.4%
-          </span>
-          <span
-            className="text-[10px] font-semibold tabular-nums"
-            style={{ color: 'var(--mc-success)' }}
-            title={`Baseline ${baseline.toFixed(1)}%`}
-          >
-            +{delta.toFixed(1)}pp
-          </span>
-        </div>
-      </div>
-    )
+/** Quality Gate body line — describes the run outcome with reviewer state. */
+function qualityGateBody(
+  passed: number,
+  failed: number,
+  decision: ReviewDecision
+): string {
+  if (decision === 'accepted') {
+    return `${passed} passed · 1 reviewed and accepted by you · 0 violations on the held-out test slice`
   }
-  return (
-    <div className="text-right">
-      <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--slack-msg-muted)' }}>
-        Pass rate {isRetraining ? '· climbing' : ''}
-      </div>
-      <div className="text-base font-extrabold" style={{ color: 'var(--mc-accent)' }}>
-        {(isRetraining && livePassRate > 0 ? livePassRate : baseline).toFixed(1)}%
-      </div>
-    </div>
-  )
-}
-
-function ProgressBar({ progress, done, total }: { progress: number; done: number; total: number }) {
-  const pct = Math.round(progress * 100)
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className="flex-1 h-1.5 rounded-full overflow-hidden"
-        style={{ backgroundColor: 'var(--mc-tier2-border)' }}
-      >
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${pct}%`,
-            backgroundColor: pct >= 100 ? 'var(--mc-success)' : 'var(--mc-accent)',
-            transition: 'width 0.3s ease, background-color 0.3s ease',
-          }}
-        />
-      </div>
-      {pct < 100 && (
-        <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--slack-msg-muted)' }}>
-          {done}/{total}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function CoverageCards({
-  overallProgress,
-  isComplete,
-}: {
-  overallProgress: number
-  isComplete: boolean
-}) {
-  return (
-    <div
-      className="px-4 pt-2.5 pb-3 flex-shrink-0"
-      style={{
-        backgroundColor: 'var(--slack-pane-bg)',
-        borderBottom: '1px solid var(--slack-border)',
-      }}
-    >
-      <div className="mb-2">
-        <h4 className="mc-type-card-h">Eval suite coverage</h4>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {COVERAGE.map((c) => {
-          const passing = isComplete
-            ? c.total - c.finalFailed
-            : Math.min(c.total, Math.round(c.total * overallProgress))
-          const cardStatus: 'running' | 'clean' | 'flagged' = isComplete
-            ? c.finalFailed > 0
-              ? 'flagged'
-              : 'clean'
-            : 'running'
-
-          const borderColor =
-            cardStatus === 'clean'
-              ? 'var(--mc-success-soft-border)'
-              : cardStatus === 'flagged'
-                ? 'var(--mc-critical-soft-border)'
-                : 'var(--slack-border)'
-          const bg =
-            cardStatus === 'clean'
-              ? 'var(--mc-success-soft-bg)'
-              : cardStatus === 'flagged'
-                ? 'var(--mc-critical-soft-bg)'
-                : 'var(--slack-pane-bg)'
-
-          // Coverage card status maps onto StatusBadge tones — single primitive,
-          // no second icon implementation.
-          const dotTone: StatusTone =
-            cardStatus === 'clean' ? 'passed' : cardStatus === 'flagged' ? 'failed' : 'running'
-          const dotLabel =
-            cardStatus === 'clean'
-              ? 'All passing'
-              : cardStatus === 'flagged'
-                ? 'Flagged for review'
-                : 'Running'
-
-          return (
-            <div
-              key={c.id}
-              className="rounded-md px-3 py-2.5"
-              style={{
-                border: `1px solid ${borderColor}`,
-                backgroundColor: bg,
-                transition: 'border-color 0.3s ease, background-color 0.3s ease',
-              }}
-            >
-              <div className="mc-type-card-h truncate mb-1.5">{c.label}</div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-baseline gap-1.5">
-                  <span
-                    className="text-[18px] font-extrabold tabular-nums leading-none"
-                    style={{
-                      color:
-                        cardStatus === 'clean'
-                          ? 'var(--mc-success)'
-                          : cardStatus === 'flagged'
-                            ? 'var(--mc-critical)'
-                            : 'var(--slack-text)',
-                      transition: 'color 0.3s ease',
-                    }}
-                  >
-                    {passing}
-                  </span>
-                  <span
-                    className="text-[13px] font-semibold tabular-nums"
-                    style={{ color: 'var(--slack-msg-muted)' }}
-                  >
-                    / {c.total}
-                  </span>
-                </div>
-                <StatusBadge tone={dotTone} size="sm" ariaLabel={dotLabel} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+  if (decision === 'kept') {
+    return `${passed} passed · ${failed} flag acknowledged for next training round · 0 violations on the held-out test slice`
+  }
+  return `${passed} passed · ${failed} flagged for review · 0 violations on the held-out test slice`
 }
 
 /**
- * StatusBadge — the single primitive for every "passing / failing / running /
- * queued" indicator inside the Evals panel.
+ * TestRow — minimal two-line row per Figma: label + status on top, count
+ * line below. Status text + matching glyph (check / spinner / red text)
+ * carries the signal; no row backgrounds.
  *
- * Tones (semantic, not visual):
- *   • passed   → solid success-green disc with white check
- *   • failed   → solid critical-red disc with white X
- *   • running  → soft info disc with spinner
- *   • queued   → neutral disc with a muted dot
- *
- * Sizes lock the disc + glyph + stroke together so a "small" badge never drifts
- * from the "medium" version. If you need a new size, add it here — never inline
- * a one-off circle/check anywhere else in this file.
+ * State map:
+ *   • queued                → muted "Queued" + 0/total
+ *   • running               → blue "Running…" + spinner + done/total
+ *   • passed                → green "Pass" + check + done/total
+ *   • failed (pending)      → red "Review" (text only) + passed/total — flagged
+ *   • failed (accepted)     → green "Pass" + check + done/total — overridden
+ *   • failed (kept)         → muted "Acknowledged" + passed/total — to retrain
  */
-type StatusTone = 'queued' | 'running' | 'passed' | 'failed'
-type StatusSize = 'sm' | 'md'
-
-const STATUS_DIMS: Record<StatusSize, { wrap: string; icon: number; stroke: number }> = {
-  sm: { wrap: 'size-4', icon: 9, stroke: 2.4 },
-  md: { wrap: 'size-5', icon: 11, stroke: 2.2 },
-}
-
-const TONE_LABEL: Record<StatusTone, string> = {
-  queued: 'Queued',
-  running: 'Running',
-  passed: 'Passing',
-  failed: 'Failed',
-}
-
-function StatusBadge({
-  tone,
-  size = 'md',
-  ariaLabel,
-}: {
-  tone: StatusTone
-  size?: StatusSize
-  ariaLabel?: string
-}) {
-  const dims = STATUS_DIMS[size]
-  const wrapClass = `inline-flex items-center justify-center ${dims.wrap} rounded-full shrink-0`
-  const label = ariaLabel ?? TONE_LABEL[tone]
-
-  if (tone === 'queued') {
-    return (
-      <span
-        className={wrapClass}
-        style={{ backgroundColor: 'var(--mc-status-queued-bg)' }}
-        aria-label={label}
-      >
-        <span
-          className="size-1.5 rounded-full"
-          style={{ backgroundColor: 'var(--mc-status-queued-fg)' }}
-        />
-      </span>
-    )
-  }
-
-  if (tone === 'running') {
-    return (
-      <span
-        className={wrapClass}
-        style={{ backgroundColor: 'var(--mc-status-running-icon-bg)' }}
-        aria-label={label}
-      >
-        <svg
-          className="ep-spinner"
-          width={dims.icon}
-          height={dims.icon}
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-        >
-          <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
-          <path
-            d="M14 8a6 6 0 0 1-6 6"
-            stroke="var(--mc-accent)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </svg>
-      </span>
-    )
-  }
-
-  if (tone === 'passed') {
-    return (
-      <span
-        className={wrapClass}
-        style={{ backgroundColor: 'var(--mc-success)' }}
-        aria-label={label}
-      >
-        <svg width={dims.icon} height={dims.icon} viewBox="0 0 16 16" fill="none" aria-hidden>
-          <path
-            d="M3.5 8.5L6.5 11.5L12.5 5.5"
-            stroke="white"
-            strokeWidth={dims.stroke}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-    )
-  }
-
-  return (
-    <span
-      className={wrapClass}
-      style={{ backgroundColor: 'var(--mc-critical)' }}
-      aria-label={label}
-    >
-      <svg width={dims.icon} height={dims.icon} viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path
-          d="M4 4L12 12M12 4L4 12"
-          stroke="white"
-          strokeWidth={dims.stroke}
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  )
-}
-
-function EvalRow({
+function TestRow({
   test,
   state,
   reviewDecision,
-  onReview,
-  onUndoReview,
 }: {
   test: TestCategory
   state: RowState
   reviewDecision: ReviewDecision
-  onReview?: () => void
-  onUndoReview?: () => void
 }) {
   const isQueued = state.status === 'queued'
   const isRunning = state.status === 'running'
   const isPassed = state.status === 'passed'
   const isFailed = state.status === 'failed'
-
-  // Reviewed states only apply to a failed row whose flag has been resolved.
   const isReviewedAccepted = isFailed && reviewDecision === 'accepted'
   const isReviewedKept = isFailed && reviewDecision === 'kept'
   const isPendingReview = isFailed && reviewDecision === 'pending'
 
-  // Color treatment shifts after review: accepted reads as a clean pass; kept
-  // reads as acknowledged-but-warm (no longer alarming red, but distinct from
-  // a clean pass so it stays visible in audit).
-  const borderColor = isReviewedAccepted
-    ? 'var(--mc-success-soft-border)'
-    : isReviewedKept
-      ? 'var(--slack-border)'
-      : isFailed
-        ? 'var(--mc-critical-soft-border)'
-        : isPassed
-          ? 'var(--mc-success-soft-border)'
-          : isRunning
-            ? 'var(--mc-info-soft-border)'
-            : 'var(--slack-border)'
+  let statusText = ''
+  let statusColor = 'var(--mc-success)'
+  let glyph: 'check' | 'spinner' | 'none' = 'none'
 
-  const bg = isReviewedAccepted
-    ? 'var(--mc-success-soft-bg)'
-    : isReviewedKept
-      ? 'var(--slack-pane-bg)'
-      : isFailed
-        ? 'var(--mc-critical-soft-bg)'
-        : isPassed
-          ? 'var(--mc-success-soft-bg)'
-          : isRunning
-            ? 'var(--mc-info-soft-bg)'
-            : 'var(--slack-pane-bg)'
-
-  // Status icon swaps to a green check when accepted; kept stays as the red X
-  // (the failure happened, the reviewer just decided not to override it).
-  const iconStatus: RowState['status'] = isReviewedAccepted ? 'passed' : state.status
+  if (isQueued) {
+    statusText = 'Queued'
+    statusColor = 'var(--slack-msg-muted)'
+  } else if (isRunning) {
+    statusText = 'Running…'
+    statusColor = 'var(--mc-accent)'
+    glyph = 'spinner'
+  } else if (isPassed || isReviewedAccepted) {
+    statusText = 'Pass'
+    statusColor = 'var(--mc-success)'
+    glyph = 'check'
+  } else if (isPendingReview) {
+    statusText = 'Review'
+    statusColor = 'var(--mc-critical)'
+  } else if (isReviewedKept) {
+    statusText = 'Acknowledged'
+    statusColor = 'var(--slack-msg-muted)'
+  }
 
   const passedCount = state.done - state.failed
-  const acceptedPassedCount = state.done
+  let countLine = `${state.done}/${test.total}`
+  if (isPendingReview) {
+    countLine = `${passedCount}/${test.total} — 1 flagged for review`
+  } else if (isReviewedAccepted) {
+    countLine = `${state.done}/${test.total} — 1 reviewed and accepted by you`
+  } else if (isReviewedKept) {
+    countLine = `${passedCount}/${test.total} — 1 acknowledged`
+  } else if (isQueued) {
+    countLine = `0/${test.total}`
+  }
 
   return (
     <div
-      className={`rounded-md px-3 py-2.5 flex items-center gap-3 ${isRunning || isPassed || isFailed ? 'ep-row-active' : ''}`}
-      style={{
-        border: `1px solid ${borderColor}`,
-        backgroundColor: bg,
-        opacity: isQueued ? 0.55 : 1,
-        transition: 'border 0.3s ease, background-color 0.3s ease, opacity 0.3s ease',
-      }}
+      className={`flex flex-col gap-0.5 py-0.5 ${
+        isRunning || isPassed || isFailed ? 'ep-row-active' : ''
+      }`}
+      style={{ opacity: isQueued ? 0.55 : 1, transition: 'opacity 0.3s ease' }}
     >
-      <StatusBadge tone={iconStatus} size="md" />
-      <div className="flex-1 min-w-0">
-        <div className="mc-type-row-label">{test.label}</div>
-        <div className="text-[11px] m-0 mt-0.5" style={{ color: 'var(--slack-msg-muted)' }}>
-          {isQueued && 'Queued'}
-          {isRunning && `Running… ${state.done}/${test.total} cases`}
-          {isPassed && `${state.done}/${test.total} passed`}
-          {isPendingReview && `${passedCount}/${test.total} passed · ${state.failed} flagged for review`}
-          {isReviewedAccepted &&
-            `${acceptedPassedCount}/${test.total} passed · 1 reviewed and accepted by you`}
-          {isReviewedKept &&
-            `${passedCount}/${test.total} passed · 1 flag acknowledged for next training round`}
+      <div className="flex items-center gap-2">
+        <span
+          className="flex-1 text-[13px] font-bold leading-[18px] min-w-0 truncate"
+          style={{ color: 'var(--slack-text)' }}
+        >
+          {test.label}
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <span
+            className="text-[12px] font-bold leading-[18px]"
+            style={{ color: statusColor, transition: 'color 0.3s ease' }}
+          >
+            {statusText}
+          </span>
+          {glyph === 'check' && (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+              <circle cx="6" cy="6" r="5.5" fill="var(--mc-success)" />
+              <path
+                d="M3.5 6.2L5.2 7.8L8.5 4.5"
+                stroke="white"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+          )}
+          {glyph === 'spinner' && (
+            <svg
+              className="ep-spinner"
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+            >
+              <circle cx="8" cy="8" r="6" stroke="var(--mc-accent)" strokeWidth="2" strokeOpacity="0.25" />
+              <path
+                d="M14 8a6 6 0 0 1-6 6"
+                stroke="var(--mc-accent)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          )}
         </div>
       </div>
-
-      {isPendingReview && onReview && (
-        <SecondaryButton onClick={onReview} className="h-7 px-2.5 text-[11px]">
-          Review
-        </SecondaryButton>
-      )}
-
-      {(isReviewedAccepted || isReviewedKept) && onUndoReview && (
-        <TextLinkButton variant="secondary" onClick={onUndoReview} className="text-[11px]">
-          Undo
-        </TextLinkButton>
-      )}
-
-      <div className="text-[11px] font-mono tabular-nums shrink-0" style={{ color: 'var(--slack-msg-muted)' }}>
-        {state.done}/{test.total}
+      <div className="text-[13px] leading-[18px]" style={{ color: 'var(--slack-msg-muted)' }}>
+        {countLine}
       </div>
-    </div>
-  )
-}
-
-function CompletionSummary({
-  totalPassed,
-  totalFailed,
-  reviewDecision,
-}: {
-  totalPassed: number
-  totalFailed: number
-  reviewDecision: ReviewDecision
-}) {
-  // Body line reflects what the reviewer has done with the flagged case.
-  const bodyLine =
-    reviewDecision === 'accepted'
-      ? `${totalPassed} passed · 1 reviewed and accepted by you · 0 policy violations on the held-out test slice`
-      : reviewDecision === 'kept'
-        ? `${totalPassed} passed · ${totalFailed} flag acknowledged for next training round · 0 policy violations on the held-out test slice`
-        : `${totalPassed} passed · ${totalFailed} flagged for review · 0 policy violations on the held-out test slice`
-
-  const footerLine =
-    reviewDecision === 'pending'
-      ? 'Resolve the flagged case to unlock deploy.'
-      : 'Ready to deploy.'
-
-  return (
-    <div
-      className="mt-3 rounded-lg px-4 py-3"
-      style={{
-        border: '1px solid var(--mc-success-soft-border)',
-        backgroundColor: 'var(--mc-success-soft-bg)',
-      }}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <StatusBadge tone="passed" size="md" ariaLabel="Quality gate passed" />
-        <span className="mc-type-row-label" style={{ color: 'var(--mc-success)' }}>
-          Quality gate passed
-        </span>
-      </div>
-      <p className="text-xs m-0" style={{ color: 'var(--slack-text)' }}>
-        {bodyLine}
-      </p>
-      <p className="text-[11px] m-0 mt-1" style={{ color: 'var(--slack-msg-muted)' }}>
-        {footerLine}
-      </p>
     </div>
   )
 }
@@ -740,109 +582,123 @@ function FlaggedCaseReviewModal({
       onClick={onClose}
     >
       <div
-        className="w-full rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full rounded-lg shadow-2xl flex flex-col overflow-hidden"
         style={{
-          maxWidth: 560,
+          maxWidth: 520,
           maxHeight: '88vh',
           backgroundColor: 'var(--slack-pane-bg)',
-          border: '1px solid var(--slack-border)',
+          border: '1px solid rgba(29, 28, 29, 0.13)',
+          boxShadow: '0 18px 48px rgba(0, 0, 0, 0.1)',
         }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="flagged-case-review-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <header
-          className="px-5 py-3.5 border-b flex-shrink-0"
-          style={{ borderColor: 'var(--slack-border)' }}
-        >
-          <div className="min-w-0">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-wide"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              Flagged case · {FLAGGED_CASE.id}
+        {/* Title bar — title + meta line + close X (no border per Figma; the
+            inset card below provides the visual break). */}
+        <header className="px-7 py-5 flex-shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <h2
+                id="flagged-case-review-title"
+                className="text-[15px] font-extrabold leading-[22px] m-0"
+                style={{ color: 'var(--slack-text)' }}
+              >
+                Review Conversational Flow Flag
+              </h2>
+              <p
+                className="text-[13px] font-bold leading-[18px] m-0 mt-1 flex items-center gap-2"
+                style={{ color: 'var(--slack-msg-muted)' }}
+              >
+                <span>Production session</span>
+                <span aria-hidden>·</span>
+                <span>Flagged Case {FLAGGED_CASE.id}</span>
+              </p>
             </div>
-            <h2
-              id="flagged-case-review-title"
-              className="text-[15px] font-extrabold m-0 mt-0.5"
-              style={{ color: 'var(--slack-text)' }}
+            {/* The Slack content-area selector in slack.css paints every raw
+                <button> green by default, so we need to explicitly null out
+                the background here (inline beats the cascade). Hover state is
+                handled inline on the button to override the same selector. */}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="shrink-0 size-9 rounded flex items-center justify-center transition-colors"
+              style={{
+                color: 'var(--slack-text)',
+                backgroundColor: 'transparent',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(29, 28, 29, 0.06)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
             >
-              Review conversational-flow flag
-            </h2>
-            <p
-              className="text-[11px] m-0 mt-0.5"
-              style={{ color: 'var(--slack-msg-muted)' }}
-            >
-              {FLAGGED_CASE.capturedFrom} · {FLAGGED_CASE.policySlice}
-            </p>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+                <path
+                  d="M5 5L15 15M15 5L5 15"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
           </div>
         </header>
 
-        <div className="px-5 py-4 overflow-auto flex-1 min-h-0 space-y-3.5">
-          <CaseSection label="User prompt" tone="neutral">
-            {FLAGGED_CASE.prompt}
-          </CaseSection>
-          <CaseSection label="Expected behavior" tone="neutral">
-            {FLAGGED_CASE.expected}
-          </CaseSection>
-          <CaseSection label="Agent response" tone="critical">
-            {FLAGGED_CASE.actual}
-          </CaseSection>
-
+        {/* Inset content card — wraps the three input-styled fields plus the
+            decision context paragraph. Single visual container so the modal
+            reads as one focused decision surface. */}
+        <div className="px-7 pb-2 overflow-auto flex-1 min-h-0">
           <div
-            className="rounded-md px-3 py-2.5 flex items-start gap-2.5"
-            style={{
-              border: '1px solid var(--slack-border)',
-              backgroundColor: 'var(--slack-main-bg)',
-            }}
+            className="rounded-lg p-4 flex flex-col gap-2"
+            style={{ backgroundColor: 'var(--slack-msg-hover)' }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden
-              style={{ marginTop: 2, color: 'var(--slack-msg-muted)' }}
-            >
-              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
-              <path
-                d="M8 5v3.5M8 11h.01"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
+            <CaseField label="User Prompt" tone="neutral">
+              {FLAGGED_CASE.prompt}
+            </CaseField>
+            <CaseField label="Expected Behavior" tone="neutral">
+              {FLAGGED_CASE.expected}
+            </CaseField>
+            <CaseField label="Agent Response" tone="critical">
+              {FLAGGED_CASE.actual}
+            </CaseField>
+
+            <div className="h-px w-full my-1" style={{ backgroundColor: 'var(--slack-border)' }} />
+
             <p
-              className="text-[11px] leading-relaxed m-0"
+              className="text-[13px] leading-[18px] m-0"
               style={{ color: 'var(--slack-msg-muted)' }}
             >
               Accepting the response will override the flag in the run summary and bump the
               pass rate to 100% for this build. Keeping the flag preserves the eval signal
-              and queues the case for the next training round. Either decision is logged
-              against your Slack actor.
+              and queues the case for the next training round.
             </p>
           </div>
         </div>
 
-        <footer
-          className="flex items-center justify-between gap-2 px-5 py-3 border-t flex-shrink-0"
-          style={{ borderColor: 'var(--slack-border)' }}
-        >
-          <TextLinkButton variant="secondary" onClick={onClose}>
-            Cancel
-          </TextLinkButton>
-          <div className="flex items-center gap-2">
-            <SecondaryButton onClick={onKeep}>Keep flag</SecondaryButton>
-            <PrimaryButton onClick={onAccept}>Accept response</PrimaryButton>
-          </div>
+        {/* Footer — right-aligned action pair. Cancel removed (the X handles
+            dismiss). Keep flag = outline secondary; Accept Response = primary
+            green. */}
+        <footer className="flex items-center justify-end gap-3 px-7 py-5 flex-shrink-0">
+          <SecondaryButton onClick={onKeep}>Keep flag</SecondaryButton>
+          <PrimaryButton onClick={onAccept}>Accept Response</PrimaryButton>
         </footer>
       </div>
     </div>
   )
 }
 
-function CaseSection({
+/**
+ * CaseField — labelled input-styled box per Figma. Label sits above; the
+ * value sits inside a white-bg, gray-bordered box that mirrors a disabled
+ * read-only input. The `critical` tone repaints the box red for the
+ * Agent Response field so the breach is visually obvious.
+ */
+function CaseField({
   label,
   tone,
   children,
@@ -851,22 +707,22 @@ function CaseSection({
   tone: 'neutral' | 'critical'
   children: ReactNode
 }) {
-  const borderColor =
-    tone === 'critical' ? 'var(--mc-critical-soft-border)' : 'var(--slack-border)'
-  const bg = tone === 'critical' ? 'var(--mc-critical-soft-bg)' : 'var(--slack-pane-bg)'
+  const isCritical = tone === 'critical'
   return (
-    <div>
-      <div
-        className="text-[10px] font-semibold uppercase tracking-wide mb-1"
-        style={{ color: 'var(--slack-msg-muted)' }}
+    <div className="flex flex-col gap-2">
+      <span
+        className="text-[15px] font-bold leading-[22px]"
+        style={{ color: 'var(--slack-text)' }}
       >
         {label}
-      </div>
+      </span>
       <div
-        className="rounded-md px-3 py-2.5 text-[12.5px] leading-relaxed"
+        className="rounded-lg px-3 py-2 text-[15px] leading-[22px]"
         style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: bg,
+          border: `1px solid ${
+            isCritical ? 'rgba(224, 30, 90, 0.3)' : 'rgba(29, 28, 29, 0.3)'
+          }`,
+          backgroundColor: isCritical ? '#ffe8ef' : 'var(--slack-pane-bg)',
           color: 'var(--slack-text)',
         }}
       >

@@ -245,12 +245,8 @@ export function ServiceGraphStatusStrip({ phase }: { phase: ServicePhase }) {
           · {sub}
         </span>
       </div>
-      <span
-        className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded"
-        style={{ backgroundColor: '#eef4f8', color: 'var(--mc-accent)' }}
-      >
-        Service Graph · USW-7
-      </span>
+      {/* The "Service Graph · USW-7" pill is rendered inside the EvalsPanel
+          inset card now; showing it here too was redundant. */}
     </div>
   )
 }

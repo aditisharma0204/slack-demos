@@ -8,6 +8,7 @@ import { InvestigationCanvas } from '@/components/demo/InvestigationCanvas'
 import { PermissionsEvalCard } from '@/components/governance/PermissionsEvalCard'
 import { TimeScopeToggle, type TimeScope } from '@/components/governance/TimeScopeToggle'
 import {
+  DestructivePrimaryButton,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui/DesignSystemButtons'
@@ -1471,7 +1472,7 @@ function AgentHubModal({
 
 function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: () => void }) {
   return (
-    <div className="mc-alert-strip" role="status" aria-label="Critical incident: Domain restriction policy breach on Order Processing Agent">
+    <div className="mc-alert-strip mc-alert-strip--critical" role="status" aria-label="Critical incident: Domain restriction policy breach on Order Processing Agent">
       <span className="mc-alert-icon" aria-hidden>
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M10 2.5L17.5 16.25H2.5L10 2.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" fill="none" />
@@ -1492,12 +1493,12 @@ function IncidentAlertStrip({ onViewAffectedAgents }: { onViewAffectedAgents: ()
           <span>started 8 min ago</span>
         </div>
       </div>
-      <PrimaryButton
+      <DestructivePrimaryButton
         onClick={onViewAffectedAgents}
-        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--slack-btn-default-bg)] focus-visible:ring-offset-1"
+        className="shrink-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--slack-btn-danger-bg)] focus-visible:ring-offset-1"
       >
         View affected agents
-      </PrimaryButton>
+      </DestructivePrimaryButton>
     </div>
   )
 }
