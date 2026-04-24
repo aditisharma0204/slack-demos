@@ -968,21 +968,6 @@
   min-width: 0;
 }
 
-.mission-control-canvas .mc-alert-severity-chip {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  padding: 1px 7px;
-  border-radius: 4px;
-  background: var(--mc-warn-amber);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.5;
-}
-
 .mission-control-canvas .mc-alert-title {
   font-size: 14px;
   font-weight: 700;
@@ -2271,10 +2256,11 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
   color: var(--mc-success);
 }
 
-/* Critical incident strip — the strip commits to the red severity tone
-   via background, border, icon ring, and the CRITICAL chip. The CTA
-   itself is intentionally a quieter ghost button (.mc-alert-cta) so the
-   alarm and the action don't fight each other for attention. */
+/* Critical incident strip — soft-red wash + red icon ring frame the
+   strip as a critical zone, while the destructive CTA on the right is
+   the single bright-red focal point that draws the eye to the action.
+   Removing the redundant severity chip means there's now only one
+   loud red element in the strip (the button), so hierarchy is clear. */
 .mission-control-canvas .mc-alert-strip--critical {
   background: var(--mc-critical-soft-bg);
   border: 1px solid var(--mc-critical-soft-border);
@@ -2284,42 +2270,17 @@ aside.story-slack-sidebar .p-ia4_sidebar_header .story-slack-sidebar__toolbar-ic
   border-color: var(--mc-critical-soft-border);
   color: var(--mc-critical);
 }
-.mission-control-canvas .mc-alert-strip--critical .mc-alert-severity-chip {
-  background: var(--mc-critical);
+/* Force the destructive CTA to use the same critical red as the icon
+   ring + strip wash so the band reads as one severity tone. The
+   DestructivePrimaryButton sets bg via inline style
+   (--slack-btn-danger-bg = #e01e5a), so we need !important to beat the
+   inline value. Scoped to the critical strip only — destructive
+   buttons elsewhere keep the design-system pink. */
+.mission-control-canvas .mc-alert-strip--critical button {
+  background-color: var(--mc-critical) !important;
 }
-
-/* Secondary affordance inside the critical strip.
-   The CRITICAL chip + red icon already carry severity ("the alarm");
-   this button just needs to read as "click here for details" without
-   competing for primary attention. Two screaming reds in one 808px
-   strip pulled the eye in two directions. */
-.mission-control-canvas .mc-alert-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  height: 32px;
-  padding: 0 10px 0 12px;
-  border-radius: 6px;
-  background: #fff;
-  color: var(--mc-critical);
-  border: 1px solid var(--mc-critical-soft-border);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-.mission-control-canvas .mc-alert-cta:hover {
-  background: var(--mc-critical-soft-bg);
-  border-color: var(--mc-critical);
-}
-.mission-control-canvas .mc-alert-cta:active {
-  transform: scale(0.98);
-}
-.mission-control-canvas .mc-alert-cta:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--mc-critical);
+.mission-control-canvas .mc-alert-strip--critical button:hover {
+  background-color: color-mix(in srgb, var(--mc-critical) 92%, white) !important;
 }
 
 .mission-control-canvas .mc-alert-icon {
